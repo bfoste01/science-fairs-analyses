@@ -25,7 +25,8 @@ joined.dat <- pre.dat %>%
 Create a vector that represents school mandated participation in the science fair. 
 ```{r, munge.1, warning=FALSE, message=FALSE, tidy=TRUE}
 # Create vector to represent school mandated voluntary participation ----
-joined.dat <- joined.dat %>% mutate(participateReq = ifelse(SchoolID == 224 | SchoolID == 225 | SchoolID == 227 | SchoolID == 229 | SchoolID == 321 | SchoolID == 423, 'mandated', 'voluntary'))
+joined.dat <- joined.dat %>% mutate(participateReq = ifelse(SchoolID == 224 | SchoolID == 225 | SchoolID == 227 | SchoolID == 229 | SchoolID == 321 | SchoolID == 423, 'voluntary', 'mandated'))
+joined.dat$participateReq
 ```
 
 Create a vector that represents whether the student provided a title for the science fair. Note that when the string responses were examined, some students indicated in some way that they either "didn't know" the name of the project or "didn't" have to have one. These string responses are set to missing. 
