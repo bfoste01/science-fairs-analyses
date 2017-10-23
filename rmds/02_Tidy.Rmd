@@ -32,6 +32,7 @@ joined.dat$participateReq
 Create a vector that represents whether the student provided a title for the science fair. Note that when the string responses were examined, some students indicated in some way that they either "didn't know" the name of the project or "didn't" have to have one. These string responses are set to missing. 
 ```{r, munge.2, warning=FALSE, message=FALSE, tidy=TRUE}
 #  Create vector to represent whether student provided name of science fair project ----
+library(stringr)
 joined.dat <- joined.dat%>% mutate(
     providedTitle = ifelse(str_detect(post44_SFtitle, c("NR", "999", "IDK", "did not have one", "Don't 
                                                         know", "We didn't have one", "Don't Remember", 

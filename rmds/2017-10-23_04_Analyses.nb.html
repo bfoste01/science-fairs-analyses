@@ -205,11 +205,403 @@ joined.dat &lt;- readRDS(file = &quot;../data/joined.dat&quot;)</code></pre>
 <!-- rnb-chunk-begin -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
+<p>Who are the participateReq = mandated, providedTitle = not provided, and post38_SFparticipate = No?</p>
 <!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxucGFuZGVyKGpvaW5lZC5kYXRcdCU+JVxuICAgIGNvdW50KHBhcnRpY2lwYXRlUmVxLCBwb3N0MzhfU0ZwYXJ0aWNpcGF0ZSwgcHJvdmlkZWRUaXRsZSkgJT4lXG4gICAgc3ByZWFkKHBvc3QzOF9TRnBhcnRpY2lwYXRlLCBuLCBmaWxsID0wKSlcblxuYGBgIn0= -->
+<pre class="r"><code>pander(joined.dat   %&gt;%
+    count(participateReq, post38_SFparticipate, providedTitle) %&gt;%
+    spread(post38_SFparticipate, n, fill =0))
+</code></pre>
+<!-- rnb-source-end -->
+<table style="width:81%;">
+<colgroup>
+<col width="23%"></col>
+<col width="22%"></col>
+<col width="6%"></col>
+<col width="20%"></col>
+<col width="6%"></col>
+</colgroup>
+<thead>
+<tr class="header">
+<th align="center">participateReq</th>
+<th align="center">providedTitle</th>
+<th align="center">No</th>
+<th align="center">Not Reported</th>
+<th align="center">Yes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="center">mandated</td>
+<td align="center">not provided</td>
+<td align="center">4</td>
+<td align="center">2</td>
+<td align="center">55</td>
+</tr>
+<tr class="even">
+<td align="center">mandated</td>
+<td align="center">provided</td>
+<td align="center">21</td>
+<td align="center">12</td>
+<td align="center">300</td>
+</tr>
+<tr class="odd">
+<td align="center">voluntary</td>
+<td align="center">not provided</td>
+<td align="center">9</td>
+<td align="center">1</td>
+<td align="center">8</td>
+</tr>
+<tr class="even">
+<td align="center">voluntary</td>
+<td align="center">provided</td>
+<td align="center">29</td>
+<td align="center">4</td>
+<td align="center">32</td>
+</tr>
+</tbody>
+</table>
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>Who are the participateReq = mandated, providedTitle = not provided, and post38_SFparticipate = Not Reported?</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxucGFuZGVyKGRhdC5pbnRlcmVzdCAlPiUgXG4gIGZpbHRlcihwYXJ0aWNpcGF0ZVJlcSA9PSBcIm1hbmRhdGVkXCIgJiBwcm92aWRlZFRpdGxlID09IFwibm90IHByb3ZpZGVkXCIsIHBvc3QzOF9TRnBhcnRpY2lwYXRlID09IFwiTm9cIikpXG5cbmBgYCJ9 -->
+<pre class="r"><code>pander(dat.interest %&gt;% 
+  filter(participateReq == &quot;mandated&quot; &amp; providedTitle == &quot;not provided&quot;, post38_SFparticipate == &quot;No&quot;))
+</code></pre>
+<!-- rnb-source-end -->
+<table style="width:100%;">
+<colgroup>
+<col width="15%"></col>
+<col width="14%"></col>
+<col width="21%"></col>
+<col width="20%"></col>
+<col width="28%"></col>
+</colgroup>
+<thead>
+<tr class="header">
+<th align="center">StudentID</th>
+<th align="center">SchoolID</th>
+<th align="center">participateReq</th>
+<th align="center">providedTitle</th>
+<th align="center">post38_SFparticipate</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="center">22861131</td>
+<td align="center">228</td>
+<td align="center">mandated</td>
+<td align="center">not provided</td>
+<td align="center">No</td>
+</tr>
+<tr class="even">
+<td align="center">22861071</td>
+<td align="center">228</td>
+<td align="center">mandated</td>
+<td align="center">not provided</td>
+<td align="center">No</td>
+</tr>
+<tr class="odd">
+<td align="center">22861161</td>
+<td align="center">228</td>
+<td align="center">mandated</td>
+<td align="center">not provided</td>
+<td align="center">No</td>
+</tr>
+<tr class="even">
+<td align="center">22861201</td>
+<td align="center">228</td>
+<td align="center">mandated</td>
+<td align="center">not provided</td>
+<td align="center">No</td>
+</tr>
+</tbody>
+</table>
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>Who are the participateReq = voluntary, providedTitle = provided, and post38_SFparticipate = No?</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxucGFuZGVyKGRhdC5pbnRlcmVzdCAlPiUgXG4gIGZpbHRlcihwYXJ0aWNpcGF0ZVJlcSA9PSBcIm1hbmRhdGVkXCIgJiBwcm92aWRlZFRpdGxlID09IFwibm90IHByb3ZpZGVkXCIsIHBvc3QzOF9TRnBhcnRpY2lwYXRlID09IFwiTm90IFJlcG9ydGVkXCIpKVxuXG5gYGAifQ== -->
+<pre class="r"><code>pander(dat.interest %&gt;% 
+  filter(participateReq == &quot;mandated&quot; &amp; providedTitle == &quot;not provided&quot;, post38_SFparticipate == &quot;Not Reported&quot;))
+</code></pre>
+<!-- rnb-source-end -->
+<table style="width:100%;">
+<colgroup>
+<col width="15%"></col>
+<col width="14%"></col>
+<col width="21%"></col>
+<col width="20%"></col>
+<col width="28%"></col>
+</colgroup>
+<thead>
+<tr class="header">
+<th align="center">StudentID</th>
+<th align="center">SchoolID</th>
+<th align="center">participateReq</th>
+<th align="center">providedTitle</th>
+<th align="center">post38_SFparticipate</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="center">42861021</td>
+<td align="center">428</td>
+<td align="center">mandated</td>
+<td align="center">not provided</td>
+<td align="center">Not Reported</td>
+</tr>
+<tr class="even">
+<td align="center">42861121</td>
+<td align="center">428</td>
+<td align="center">mandated</td>
+<td align="center">not provided</td>
+<td align="center">Not Reported</td>
+</tr>
+</tbody>
+</table>
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>Who are the participateReq = voluntary, providedTitle = provided, and post38_SFparticipate = Yes?</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxucGFuZGVyKGRhdC5pbnRlcmVzdCAlPiUgXG4gIGZpbHRlcihwYXJ0aWNpcGF0ZVJlcSA9PSBcInZvbHVudGFyeVwiICYgcHJvdmlkZWRUaXRsZSA9PSBcInByb3ZpZGVkXCIsIHBvc3QzOF9TRnBhcnRpY2lwYXRlID09IFwiTm9cIikpXG5cbmBgYCJ9 -->
+<pre class="r"><code>pander(dat.interest %&gt;% 
+  filter(participateReq == &quot;voluntary&quot; &amp; providedTitle == &quot;provided&quot;, post38_SFparticipate == &quot;No&quot;))
+</code></pre>
+<!-- rnb-source-end -->
+<table style="width:100%;">
+<colgroup>
+<col width="15%"></col>
+<col width="14%"></col>
+<col width="21%"></col>
+<col width="20%"></col>
+<col width="28%"></col>
+</colgroup>
+<thead>
+<tr class="header">
+<th align="center">StudentID</th>
+<th align="center">SchoolID</th>
+<th align="center">participateReq</th>
+<th align="center">providedTitle</th>
+<th align="center">post38_SFparticipate</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="center">22561291</td>
+<td align="center">225</td>
+<td align="center">voluntary</td>
+<td align="center">provided</td>
+<td align="center">No</td>
+</tr>
+<tr class="even">
+<td align="center">42361121</td>
+<td align="center">423</td>
+<td align="center">voluntary</td>
+<td align="center">provided</td>
+<td align="center">No</td>
+</tr>
+<tr class="odd">
+<td align="center">42361111</td>
+<td align="center">423</td>
+<td align="center">voluntary</td>
+<td align="center">provided</td>
+<td align="center">No</td>
+</tr>
+<tr class="even">
+<td align="center">42361191</td>
+<td align="center">423</td>
+<td align="center">voluntary</td>
+<td align="center">provided</td>
+<td align="center">No</td>
+</tr>
+<tr class="odd">
+<td align="center">42361221</td>
+<td align="center">423</td>
+<td align="center">voluntary</td>
+<td align="center">provided</td>
+<td align="center">No</td>
+</tr>
+<tr class="even">
+<td align="center">32161061</td>
+<td align="center">321</td>
+<td align="center">voluntary</td>
+<td align="center">provided</td>
+<td align="center">No</td>
+</tr>
+<tr class="odd">
+<td align="center">32161121</td>
+<td align="center">321</td>
+<td align="center">voluntary</td>
+<td align="center">provided</td>
+<td align="center">No</td>
+</tr>
+<tr class="even">
+<td align="center">32161231</td>
+<td align="center">321</td>
+<td align="center">voluntary</td>
+<td align="center">provided</td>
+<td align="center">No</td>
+</tr>
+<tr class="odd">
+<td align="center">32161411</td>
+<td align="center">321</td>
+<td align="center">voluntary</td>
+<td align="center">provided</td>
+<td align="center">No</td>
+</tr>
+<tr class="even">
+<td align="center">22961101</td>
+<td align="center">229</td>
+<td align="center">voluntary</td>
+<td align="center">provided</td>
+<td align="center">No</td>
+</tr>
+<tr class="odd">
+<td align="center">22961123</td>
+<td align="center">229</td>
+<td align="center">voluntary</td>
+<td align="center">provided</td>
+<td align="center">No</td>
+</tr>
+<tr class="even">
+<td align="center">22561071</td>
+<td align="center">225</td>
+<td align="center">voluntary</td>
+<td align="center">provided</td>
+<td align="center">No</td>
+</tr>
+<tr class="odd">
+<td align="center">22561201</td>
+<td align="center">225</td>
+<td align="center">voluntary</td>
+<td align="center">provided</td>
+<td align="center">No</td>
+</tr>
+<tr class="even">
+<td align="center">42361091</td>
+<td align="center">423</td>
+<td align="center">voluntary</td>
+<td align="center">provided</td>
+<td align="center">No</td>
+</tr>
+<tr class="odd">
+<td align="center">42361211</td>
+<td align="center">423</td>
+<td align="center">voluntary</td>
+<td align="center">provided</td>
+<td align="center">No</td>
+</tr>
+<tr class="even">
+<td align="center">22961088</td>
+<td align="center">229</td>
+<td align="center">voluntary</td>
+<td align="center">provided</td>
+<td align="center">No</td>
+</tr>
+<tr class="odd">
+<td align="center">22961099</td>
+<td align="center">229</td>
+<td align="center">voluntary</td>
+<td align="center">provided</td>
+<td align="center">No</td>
+</tr>
+<tr class="even">
+<td align="center">22761055</td>
+<td align="center">227</td>
+<td align="center">voluntary</td>
+<td align="center">provided</td>
+<td align="center">No</td>
+</tr>
+<tr class="odd">
+<td align="center">42361141</td>
+<td align="center">423</td>
+<td align="center">voluntary</td>
+<td align="center">provided</td>
+<td align="center">No</td>
+</tr>
+<tr class="even">
+<td align="center">22961167</td>
+<td align="center">229</td>
+<td align="center">voluntary</td>
+<td align="center">provided</td>
+<td align="center">No</td>
+</tr>
+<tr class="odd">
+<td align="center">32161021</td>
+<td align="center">321</td>
+<td align="center">voluntary</td>
+<td align="center">provided</td>
+<td align="center">No</td>
+</tr>
+<tr class="even">
+<td align="center">32161261</td>
+<td align="center">321</td>
+<td align="center">voluntary</td>
+<td align="center">provided</td>
+<td align="center">No</td>
+</tr>
+<tr class="odd">
+<td align="center">32161421</td>
+<td align="center">321</td>
+<td align="center">voluntary</td>
+<td align="center">provided</td>
+<td align="center">No</td>
+</tr>
+<tr class="even">
+<td align="center">22961145</td>
+<td align="center">229</td>
+<td align="center">voluntary</td>
+<td align="center">provided</td>
+<td align="center">No</td>
+</tr>
+<tr class="odd">
+<td align="center">22761088</td>
+<td align="center">227</td>
+<td align="center">voluntary</td>
+<td align="center">provided</td>
+<td align="center">No</td>
+</tr>
+<tr class="even">
+<td align="center">42361201</td>
+<td align="center">423</td>
+<td align="center">voluntary</td>
+<td align="center">provided</td>
+<td align="center">No</td>
+</tr>
+<tr class="odd">
+<td align="center">22961066</td>
+<td align="center">229</td>
+<td align="center">voluntary</td>
+<td align="center">provided</td>
+<td align="center">No</td>
+</tr>
+<tr class="even">
+<td align="center">22961134</td>
+<td align="center">229</td>
+<td align="center">voluntary</td>
+<td align="center">provided</td>
+<td align="center">No</td>
+</tr>
+<tr class="odd">
+<td align="center">22561131</td>
+<td align="center">225</td>
+<td align="center">voluntary</td>
+<td align="center">provided</td>
+<td align="center">No</td>
+</tr>
+</tbody>
+</table>
+<!-- rnb-chunk-end -->
 </div>
 </div>
 
-<div id="rmd-source-code">LS0tCnRpdGxlOiAiUiBOb3RlYm9vayIKb3V0cHV0OiBodG1sX25vdGVib29rCi0tLQoKVGhpcyBpcyBhbiBbUiBNYXJrZG93bl0oaHR0cDovL3JtYXJrZG93bi5yc3R1ZGlvLmNvbSkgTm90ZWJvb2suIFdoZW4geW91IGV4ZWN1dGUgY29kZSB3aXRoaW4gdGhlIG5vdGVib29rLCB0aGUgcmVzdWx0cyBhcHBlYXIgYmVuZWF0aCB0aGUgY29kZS4gCgojIEludHJvZHVjdGlvbgoKVGhlIGZvbGxvd2luZyBzY3JpcHQgZXhwbG9yZXMgd2hhdCBjb21iaW5hdGlvbiBvZiBzdHVkZW50cyBzaG91bGQgY29uc3RpdHV0ZSB0aGUgYW5hbHl0aWMgc2FtcGxlLiAKCiMjIFNldCB1cAoKSW1wb3J0IHBhY2thZ2VzIG5lZWRlZCBmb3IgYW5hbHlzZXMuIAoKYGBge3IsIGltcG9ydCwgbWVzc2FnZT1GQUxTRSwgd2FybmluZz1GQUxTRX0KIyBsb2FkIHBhY2thZXMKaWYgKCFyZXF1aXJlKCJwYWNtYW4iKSkgaW5zdGFsbC5wYWNrYWdlcygicGFjbWFuIikKcGFjbWFuOjpwX2xvYWQoTXBsdXNBdXRvbWF0aW9uLCBwc3ljaCwgdGlkeXIsIGZvcmVpZ24sIGdncGxvdDIsIGdnYWx0LCBnZ3RoZW1lcywgCiAgICByZWFkciwgZHBseXIsIGtuaXRyLCBzY2FsZXMsIHdvcmRjbG91ZCwgcGFuZGVyKQoKIyBJbXBvcnQgdGhlIGRhdGEgLS0tLQpqb2luZWQuZGF0IDwtIHJlYWRSRFMoZmlsZSA9ICIuLi9kYXRhL2pvaW5lZC5kYXQiKQpgYGAKCiMjIFRhYmxlcwoKTGV0J3MgZXhhbWluZSBhIGNyb3NzLXRhYiBvZjoKCiogc2Nob29scyBtYW5kYXRpbmcgcGFydGljaXBhdGlvbgoKKiBzdHVkZW50cyB3aG8gcmVwb3J0ZWQgcGFydGljaXBhdGluZyBpbiB0aGUgc2NpZW5jZSBmYWlyCgoqIHN0dWRlbnRzIHdobyBwcm92aWRlZCBhIHRpdGxlIGZvciB0aGUgc2NpZW5jZSBmYWlyIHByb2plY3QKCmBgYHtyLCBtZXNzYWdlPUZBTFNFLCB3YXJuaW5nPUZBTFNFLCByZXN1bHRzPSdhc2lzJ30KcGFuZGVyKGpvaW5lZC5kYXQJJT4lCiAgICBjb3VudChwYXJ0aWNpcGF0ZVJlcSwgcG9zdDM4X1NGcGFydGljaXBhdGUsIHByb3ZpZGVkVGl0bGUpICU+JQogICAgc3ByZWFkKHBvc3QzOF9TRnBhcnRpY2lwYXRlLCBuLCBmaWxsID0wKSkKYGBgCgoKCg==</div>
+<div id="rmd-source-code">LS0tCnRpdGxlOiAiUiBOb3RlYm9vayIKb3V0cHV0OiBodG1sX25vdGVib29rCi0tLQoKVGhpcyBpcyBhbiBbUiBNYXJrZG93bl0oaHR0cDovL3JtYXJrZG93bi5yc3R1ZGlvLmNvbSkgTm90ZWJvb2suIFdoZW4geW91IGV4ZWN1dGUgY29kZSB3aXRoaW4gdGhlIG5vdGVib29rLCB0aGUgcmVzdWx0cyBhcHBlYXIgYmVuZWF0aCB0aGUgY29kZS4gCgojIEludHJvZHVjdGlvbgoKVGhlIGZvbGxvd2luZyBzY3JpcHQgZXhwbG9yZXMgd2hhdCBjb21iaW5hdGlvbiBvZiBzdHVkZW50cyBzaG91bGQgY29uc3RpdHV0ZSB0aGUgYW5hbHl0aWMgc2FtcGxlLiAKCiMjIFNldCB1cAoKSW1wb3J0IHBhY2thZ2VzIG5lZWRlZCBmb3IgYW5hbHlzZXMuIAoKYGBge3IsIGltcG9ydCwgbWVzc2FnZT1GQUxTRSwgd2FybmluZz1GQUxTRX0KIyBsb2FkIHBhY2thZXMKaWYgKCFyZXF1aXJlKCJwYWNtYW4iKSkgaW5zdGFsbC5wYWNrYWdlcygicGFjbWFuIikKcGFjbWFuOjpwX2xvYWQoTXBsdXNBdXRvbWF0aW9uLCBwc3ljaCwgdGlkeXIsIGZvcmVpZ24sIGdncGxvdDIsIGdnYWx0LCBnZ3RoZW1lcywgCiAgICByZWFkciwgZHBseXIsIGtuaXRyLCBzY2FsZXMsIHdvcmRjbG91ZCwgcGFuZGVyKQoKIyBJbXBvcnQgdGhlIGRhdGEgLS0tLQpqb2luZWQuZGF0IDwtIHJlYWRSRFMoZmlsZSA9ICIuLi9kYXRhL2pvaW5lZC5kYXQiKQpgYGAKCiMjIFRhYmxlcwoKTGV0J3MgZXhhbWluZSBhIGNyb3NzLXRhYiBvZjoKCiogc2Nob29scyBtYW5kYXRpbmcgcGFydGljaXBhdGlvbgoKKiBzdHVkZW50cyB3aG8gcmVwb3J0ZWQgcGFydGljaXBhdGluZyBpbiB0aGUgc2NpZW5jZSBmYWlyCgoqIHN0dWRlbnRzIHdobyBwcm92aWRlZCBhIHRpdGxlIGZvciB0aGUgc2NpZW5jZSBmYWlyIHByb2plY3QKCmBgYHtyLCBtZXNzYWdlPUZBTFNFLCB3YXJuaW5nPUZBTFNFLCByZXN1bHRzPSdhc2lzJ30KcGFuZGVyKGpvaW5lZC5kYXQJJT4lCiAgICBjb3VudChwYXJ0aWNpcGF0ZVJlcSwgcG9zdDM4X1NGcGFydGljaXBhdGUsIHByb3ZpZGVkVGl0bGUpICU+JQogICAgc3ByZWFkKHBvc3QzOF9TRnBhcnRpY2lwYXRlLCBuLCBmaWxsID0wKSkKYGBgCgpXaG8gYXJlIHRoZSBwYXJ0aWNpcGF0ZVJlcSA9IG1hbmRhdGVkLCAgcHJvdmlkZWRUaXRsZSA9IG5vdCBwcm92aWRlZCwgYW5kIHBvc3QzOF9TRnBhcnRpY2lwYXRlID0gTm8/IApgYGB7ciwgbWVzc2FnZT1GQUxTRSwgd2FybmluZz1GQUxTRSwgcmVzdWx0cz0nYXNpcyd9CmRhdC5pbnRlcmVzdCA8LSBqb2luZWQuZGF0ICU+JQogIHNlbGVjdChTdHVkZW50SUQsIFNjaG9vbElELCBwYXJ0aWNpcGF0ZVJlcSxwcm92aWRlZFRpdGxlLCBwb3N0MzhfU0ZwYXJ0aWNpcGF0ZSkKCnBhbmRlcihkYXQuaW50ZXJlc3QgJT4lIAogIGZpbHRlcihwYXJ0aWNpcGF0ZVJlcSA9PSAibWFuZGF0ZWQiICYgcHJvdmlkZWRUaXRsZSA9PSAibm90IHByb3ZpZGVkIiwgcG9zdDM4X1NGcGFydGljaXBhdGUgPT0gIk5vIikpCmBgYAoKV2hvIGFyZSB0aGUgcGFydGljaXBhdGVSZXEgPSBtYW5kYXRlZCwgIHByb3ZpZGVkVGl0bGUgPSBub3QgcHJvdmlkZWQsIGFuZCBwb3N0MzhfU0ZwYXJ0aWNpcGF0ZSA9IE5vdCBSZXBvcnRlZD8gCgpgYGB7ciwgbWVzc2FnZT1GQUxTRSwgd2FybmluZz1GQUxTRSwgcmVzdWx0cz0nYXNpcyd9CnBhbmRlcihkYXQuaW50ZXJlc3QgJT4lIAogIGZpbHRlcihwYXJ0aWNpcGF0ZVJlcSA9PSAibWFuZGF0ZWQiICYgcHJvdmlkZWRUaXRsZSA9PSAibm90IHByb3ZpZGVkIiwgcG9zdDM4X1NGcGFydGljaXBhdGUgPT0gIk5vdCBSZXBvcnRlZCIpKQpgYGAKCldobyBhcmUgdGhlIHBhcnRpY2lwYXRlUmVxID0gdm9sdW50YXJ5LCAgcHJvdmlkZWRUaXRsZSA9ICBwcm92aWRlZCwgYW5kIHBvc3QzOF9TRnBhcnRpY2lwYXRlID0gTm8/IApgYGB7ciwgbWVzc2FnZT1GQUxTRSwgd2FybmluZz1GQUxTRSwgcmVzdWx0cz0nYXNpcyd9CnBhbmRlcihkYXQuaW50ZXJlc3QgJT4lIAogIGZpbHRlcihwYXJ0aWNpcGF0ZVJlcSA9PSAidm9sdW50YXJ5IiAmIHByb3ZpZGVkVGl0bGUgPT0gInByb3ZpZGVkIiwgcG9zdDM4X1NGcGFydGljaXBhdGUgPT0gIk5vIikpCmBgYApXaG8gYXJlIHRoZSBwYXJ0aWNpcGF0ZVJlcSA9IHZvbHVudGFyeSwgIHByb3ZpZGVkVGl0bGUgPSAgcHJvdmlkZWQsIGFuZCBwb3N0MzhfU0ZwYXJ0aWNpcGF0ZSA9IFllcz8gCmBgYHtyLCBtZXNzYWdlPUZBTFNFLCB3YXJuaW5nPUZBTFNFLCByZXN1bHRzPSdhc2lzJ30KcGFuZGVyKGRhdC5pbnRlcmVzdCAlPiUgCiAgZmlsdGVyKHBhcnRpY2lwYXRlUmVxID09ICJ2b2x1bnRhcnkiICYgcHJvdmlkZWRUaXRsZSA9PSAicHJvdmlkZWQiLCBwb3N0MzhfU0ZwYXJ0aWNpcGF0ZSA9PSAiWWVzIikpCmBgYA==</div>
 
 
 

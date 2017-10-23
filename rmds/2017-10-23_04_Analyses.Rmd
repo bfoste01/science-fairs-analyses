@@ -39,5 +39,29 @@ pander(joined.dat	%>%
     spread(post38_SFparticipate, n, fill =0))
 ```
 
+Who are the participateReq = mandated,  providedTitle = not provided, and post38_SFparticipate = No? 
+```{r, message=FALSE, warning=FALSE, results='asis'}
+dat.interest <- joined.dat %>%
+  select(StudentID, SchoolID, participateReq,providedTitle, post38_SFparticipate)
 
+pander(dat.interest %>% 
+  filter(participateReq == "mandated" & providedTitle == "not provided", post38_SFparticipate == "No"))
+```
 
+Who are the participateReq = mandated,  providedTitle = not provided, and post38_SFparticipate = Not Reported? 
+
+```{r, message=FALSE, warning=FALSE, results='asis'}
+pander(dat.interest %>% 
+  filter(participateReq == "mandated" & providedTitle == "not provided", post38_SFparticipate == "Not Reported"))
+```
+
+Who are the participateReq = voluntary,  providedTitle =  provided, and post38_SFparticipate = No? 
+```{r, message=FALSE, warning=FALSE, results='asis'}
+pander(dat.interest %>% 
+  filter(participateReq == "voluntary" & providedTitle == "provided", post38_SFparticipate == "No"))
+```
+Who are the participateReq = voluntary,  providedTitle =  provided, and post38_SFparticipate = Yes? 
+```{r, message=FALSE, warning=FALSE, results='asis'}
+pander(dat.interest %>% 
+  filter(participateReq == "voluntary" & providedTitle == "provided", post38_SFparticipate == "Yes"))
+```
