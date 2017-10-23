@@ -1,0 +1,11 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+packrat/lib*/
+data
+reports
+rmds/01_Import.nb.html
+rmds/02_Tidy.nb.html
+rmds/03_Analyses.nb.html
+

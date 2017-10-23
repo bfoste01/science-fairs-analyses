@@ -1,0 +1,45 @@
+---
+title: "03_Analyses"
+output: html_notebook
+---
+
+This script should walk the user through any meaningful chunk of analyses. I like to think of these scripts as analgous to chapters in a book- if a set of analyses warrants its own chapter, then it should have its own notebook. For example, an obvious way to break up a simple regression analysis up would be to create seperate notebooks for: descriptives, EDA, and the regression. You might also find yourself conducting several large scale analyses. In this case I would adopt a numeric naming system as follows: 
+
+- 03_01_Descriptives
+
+- 03_02_EDA
+
+- 03_03_Regression
+
+- 04_01_Descriptives
+
+- 04_02_EDA
+
+- 04_03_LCA
+
+ ```{r setup, include=FALSE}
+ knitr::opts_knit$set(root.dir = 'rmds')
+ ```
+ 
+```{r}
+# Initialize an empty list to store the results ----
+results <- list()
+
+# Load the transformed data ----
+readRDS("data/transformed.rds") -> df
+
+# Specific transformations ----
+
+# Models ----
+
+# Tables ----
+
+# Plots ----
+
+# Save the results object ----
+saveRDS(results, file = "data/results.rds")
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file).

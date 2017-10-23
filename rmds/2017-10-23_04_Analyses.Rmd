@@ -1,0 +1,43 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+# Introduction
+
+The following script explores what combination of students should constitute the analytic sample. 
+
+## Set up
+
+Import packages needed for analyses. 
+
+```{r, import, message=FALSE, warning=FALSE}
+# load packaes
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(MplusAutomation, psych, tidyr, foreign, ggplot2, ggalt, ggthemes, 
+    readr, dplyr, knitr, scales, wordcloud, pander)
+
+# Import the data ----
+joined.dat <- readRDS(file = "../data/joined.dat")
+```
+
+## Tables
+
+Let's examine a cross-tab of:
+
+* schools mandating participation
+
+* students who reported participating in the science fair
+
+* students who provided a title for the science fair project
+
+```{r, message=FALSE, warning=FALSE, results='asis'}
+pander(joined.dat	%>%
+    count(participateReq, post38_SFparticipate, providedTitle) %>%
+    spread(post38_SFparticipate, n, fill =0))
+```
+
+
+

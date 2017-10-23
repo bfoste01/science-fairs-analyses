@@ -1,0 +1,23 @@
+---
+title: "01_Data Import"
+author: "Brandon Foster, Ph.D."
+output: html_notebook
+---
+
+This notebook should walk the user through the steps taken to import all of the raw data files. Despite this script typically being quite short, I find it useful to present it in the format of an R Notebook for easier reading. 
+
+```{r}
+# load necessary packages
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(MplusAutomation, psych, tidyr, foreign, ggplot2, ggalt, ggthemes, 
+    readr, dplyr, knitr, scales, wordcloud, pander)
+# Import the raw data in spss ----
+
+# pre
+pre.dat <- read.spss("../data/PreQuestionnaireData.sav", to.data.frame = TRUE, use.value.labels = FALSE)
+pre.dat.labs <- read.spss("../data/PreQuestionnaireData.sav", to.data.frame = TRUE, use.value.labels = TRUE)
+
+ # post
+post.dat <- read.spss("../data/PostQuestionnaireData.sav", to.data.frame = TRUE, use.value.labels = FALSE)
+post.dat.labs <- read.spss("../data/PostQuestionnaireData.sav", to.data.frame = TRUE, use.value.labels = FALSE)
+```
