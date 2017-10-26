@@ -216,9 +216,25 @@ The modification indices also showed that several items cross-loaded onto other 
 
 Overall, the model suggests that the hypothesized model does not adequately capture the relationships between the indicators. The postsence of such large residual correlations between items suggests the postsence of unspecified factors or content within items that overlaps with other dimensions specified in the model. Further, the overall model showed a degredation in fit when compared to the "pre" survey, which can be observerd through: worse model fit statistics, smaller factor loadings, and larger residual variances. This suggests that the factor structure is likely not invariant across time, though formal tests for this were not carried out.
 
-# Sandbox
+# Unidimensional Model (pre)
 ```{r, message=FALSE, warning=FALSE}
-
-
+uni.pre.interest <- ' 
+interest  =~ s_preInt_Des_15 + s_preInt_Des_17 + s_preInt_Des_21 + s_preInt_Des_24 + s_preInt_Des_26 + s_preInt_Des_29 + s_preInt_Des_33 + s_preInt_Car_16 + s_preInt_Car_18 + s_preInt_Car_20 + s_preInt_Car_23 + s_preInt_Car_25 + s_preInt_Car_28 + s_preInt_Car_30 + s_preInt_Car_32 + s_preInt_Car_34 + s_preInt_Car_36 + s_preInt_Self_19 + s_preInt_Self_22 + s_preInt_Self_27 + s_preInt_Self_31 + s_preInt_Self_35
+'
+preUniInt.fit.1 <- cfa(uni.pre.interest, std.lv = TRUE, orthogonal = FALSE, data=joined.dat, missing='fiml')
+summary(preUniInt.fit.1, fit.measures=TRUE)
 ```
+
+Results show that the model fit more poorly than the multidimensional model. 
+
+# Unidimensional Model (post)
+```{r, message=FALSE, warning=FALSE}
+uni.post.interest <- ' 
+interest  =~ s_postInt_Des_15 + s_postInt_Des_17 + s_postInt_Des_21 + s_postInt_Des_24 + s_postInt_Des_26 + s_postInt_Des_29 + s_postInt_Des_33 + s_postInt_Car_16 + s_postInt_Car_18 + s_postInt_Car_20 + s_postInt_Car_23 + s_postInt_Car_25 + s_postInt_Car_28 + s_postInt_Car_30 + s_postInt_Car_32 + s_postInt_Car_34 + s_postInt_Car_36 + s_postInt_Self_19 + s_postInt_Self_22 + s_postInt_Self_27 + s_postInt_Self_31 + s_postInt_Self_35
+'
+postUniInt.fit.1 <- cfa(uni.post.interest, std.lv = TRUE, orthogonal = FALSE, data=joined.dat, missing='fiml')
+summary(postUniInt.fit.1, fit.measures=TRUE)
+```
+
+Results show that the model fit more poorly than the multidimensional model. 
 

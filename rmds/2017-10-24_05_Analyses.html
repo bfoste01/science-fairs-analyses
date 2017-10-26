@@ -142,11 +142,11 @@ $(document).ready(function () {
 </ul></li>
 <li><a href="#summmary-of-results-1">Summmary of results</a></li>
 </ul></li>
+<li><a href="#unidimensional-model-pre">Unidimensional Model (pre)</a></li>
+<li><a href="#unidimensional-model-post">Unidimensional Model (post)</a></li>
 </ul>
 </div>
 
-<p>This is an <a href="http://rmarkdown.rstudio.com">R Markdown</a> Notebook. When you execute code within the notebook, the results appear beneath the code.</p>
-<p>Try executing this chunk by clicking the <em>Run</em> button within the chunk or by placing your cursor inside it and pressing <em>Cmd+Shift+Enter</em>.</p>
 <div id="import-the-data" class="section level1">
 <h1>Import the data</h1>
 <pre class="r"><code># load packaes
@@ -2714,6 +2714,274 @@ selfConcept
 <h2>Summmary of results</h2>
 <p>Overall, the model suggests that the hypothesized model does not adequately capture the relationships between the indicators. The postsence of such large residual correlations between items suggests the postsence of unspecified factors or content within items that overlaps with other dimensions specified in the model. Further, the overall model showed a degredation in fit when compared to the “pre” survey, which can be observerd through: worse model fit statistics, smaller factor loadings, and larger residual variances. This suggests that the factor structure is likely not invariant across time, though formal tests for this were not carried out.</p>
 </div>
+</div>
+<div id="unidimensional-model-pre" class="section level1">
+<h1>Unidimensional Model (pre)</h1>
+<pre class="r"><code>uni.pre.interest &lt;- ' 
+interest  =~ s_preInt_Des_15 + s_preInt_Des_17 + s_preInt_Des_21 + s_preInt_Des_24 + s_preInt_Des_26 + s_preInt_Des_29 + s_preInt_Des_33 + s_preInt_Car_16 + s_preInt_Car_18 + s_preInt_Car_20 + s_preInt_Car_23 + s_preInt_Car_25 + s_preInt_Car_28 + s_preInt_Car_30 + s_preInt_Car_32 + s_preInt_Car_34 + s_preInt_Car_36 + s_preInt_Self_19 + s_preInt_Self_22 + s_preInt_Self_27 + s_preInt_Self_31 + s_preInt_Self_35
+'
+preUniInt.fit.1 &lt;- cfa(uni.pre.interest, std.lv = TRUE, orthogonal = FALSE, data=joined.dat, missing='fiml')
+summary(preUniInt.fit.1, fit.measures=TRUE)</code></pre>
+<pre><code>## lavaan (0.5-20) converged normally after  62 iterations
+## 
+##                                                   Used       Total
+##   Number of observations                           467         477
+## 
+##   Number of missing patterns                        54
+## 
+##   Estimator                                         ML
+##   Minimum Function Test Statistic             1179.644
+##   Degrees of freedom                               209
+##   P-value (Chi-square)                           0.000
+## 
+## Model test baseline model:
+## 
+##   Minimum Function Test Statistic             4532.117
+##   Degrees of freedom                               231
+##   P-value                                        0.000
+## 
+## User model versus baseline model:
+## 
+##   Comparative Fit Index (CFI)                    0.774
+##   Tucker-Lewis Index (TLI)                       0.751
+## 
+## Loglikelihood and Information Criteria:
+## 
+##   Loglikelihood user model (H0)             -13879.199
+##   Loglikelihood unrestricted model (H1)     -13289.376
+## 
+##   Number of free parameters                         66
+##   Akaike (AIC)                               27890.397
+##   Bayesian (BIC)                             28164.055
+##   Sample-size adjusted Bayesian (BIC)        27954.585
+## 
+## Root Mean Square Error of Approximation:
+## 
+##   RMSEA                                          0.100
+##   90 Percent Confidence Interval          0.094  0.105
+##   P-value RMSEA &lt;= 0.05                          0.000
+## 
+## Standardized Root Mean Square Residual:
+## 
+##   SRMR                                           0.079
+## 
+## Parameter Estimates:
+## 
+##   Information                                 Observed
+##   Standard Errors                             Standard
+## 
+## Latent Variables:
+##                    Estimate  Std.Err  Z-value  P(&gt;|z|)
+##   interest =~                                         
+##     s_preInt_Ds_15    0.662    0.040   16.568    0.000
+##     s_preInt_Ds_17    0.658    0.053   12.465    0.000
+##     s_preInt_Ds_21    0.484    0.052    9.349    0.000
+##     s_preInt_Ds_24    0.654    0.052   12.637    0.000
+##     s_preInt_Ds_26    0.327    0.043    7.674    0.000
+##     s_preInt_Ds_29    0.833    0.050   16.753    0.000
+##     s_preInt_Ds_33    0.848    0.047   17.953    0.000
+##     s_preInt_Cr_16    0.601    0.053   11.433    0.000
+##     s_preInt_Cr_18    0.899    0.050   17.969    0.000
+##     s_preInt_Cr_20    0.796    0.054   14.740    0.000
+##     s_preInt_Cr_23    0.729    0.047   15.607    0.000
+##     s_preInt_Cr_25    0.870    0.049   17.705    0.000
+##     s_preInt_Cr_28    0.641    0.049   13.137    0.000
+##     s_preInt_Cr_30    0.866    0.054   15.974    0.000
+##     s_preInt_Cr_32    0.931    0.047   19.727    0.000
+##     s_preInt_Cr_34    0.669    0.052   12.826    0.000
+##     s_preInt_Cr_36    0.962    0.048   19.927    0.000
+##     s_prInt_Slf_19    0.344    0.045    7.723    0.000
+##     s_prInt_Slf_22    0.334    0.043    7.818    0.000
+##     s_prInt_Slf_27    0.302    0.048    6.309    0.000
+##     s_prInt_Slf_31    0.443    0.056    7.863    0.000
+##     s_prInt_Slf_35    0.362    0.054    6.679    0.000
+## 
+## Intercepts:
+##                    Estimate  Std.Err  Z-value  P(&gt;|z|)
+##     s_preInt_Ds_15    4.030    0.044   90.830    0.000
+##     s_preInt_Ds_17    3.038    0.056   54.434    0.000
+##     s_preInt_Ds_21    2.682    0.052   51.155    0.000
+##     s_preInt_Ds_24    3.486    0.055   63.872    0.000
+##     s_preInt_Ds_26    4.332    0.043  101.627    0.000
+##     s_preInt_Ds_29    3.818    0.056   68.649    0.000
+##     s_preInt_Ds_33    3.479    0.054   64.619    0.000
+##     s_preInt_Cr_16    3.241    0.055   59.442    0.000
+##     s_preInt_Cr_18    3.072    0.057   53.959    0.000
+##     s_preInt_Cr_20    3.246    0.059   55.460    0.000
+##     s_preInt_Cr_23    3.629    0.051   70.744    0.000
+##     s_preInt_Cr_25    3.662    0.056   65.754    0.000
+##     s_preInt_Cr_28    2.438    0.052   47.236    0.000
+##     s_preInt_Cr_30    3.009    0.060   50.209    0.000
+##     s_preInt_Cr_32    3.634    0.055   65.795    0.000
+##     s_preInt_Cr_34    3.694    0.055   66.890    0.000
+##     s_preInt_Cr_36    2.835    0.057   50.025    0.000
+##     s_prInt_Slf_19    3.517    0.045   79.035    0.000
+##     s_prInt_Slf_22    3.982    0.043   93.420    0.000
+##     s_prInt_Slf_27    4.151    0.047   87.905    0.000
+##     s_prInt_Slf_31    3.532    0.057   62.471    0.000
+##     s_prInt_Slf_35    3.816    0.054   71.165    0.000
+##     interest          0.000                           
+## 
+## Variances:
+##                    Estimate  Std.Err  Z-value  P(&gt;|z|)
+##     s_preInt_Ds_15    0.479    0.034   14.131    0.000
+##     s_preInt_Ds_17    0.986    0.068   14.527    0.000
+##     s_preInt_Ds_21    1.041    0.070   14.956    0.000
+##     s_preInt_Ds_24    0.941    0.064   14.600    0.000
+##     s_preInt_Ds_26    0.734    0.049   15.027    0.000
+##     s_preInt_Ds_29    0.738    0.053   14.052    0.000
+##     s_preInt_Ds_33    0.612    0.045   13.665    0.000
+##     s_preInt_Cr_16    1.000    0.068   14.668    0.000
+##     s_preInt_Cr_18    0.695    0.050   13.838    0.000
+##     s_preInt_Cr_20    0.933    0.065   14.257    0.000
+##     s_preInt_Cr_23    0.690    0.048   14.286    0.000
+##     s_preInt_Cr_25    0.681    0.049   13.875    0.000
+##     s_preInt_Cr_28    0.822    0.056   14.593    0.000
+##     s_preInt_Cr_30    0.914    0.064   14.200    0.000
+##     s_preInt_Cr_32    0.549    0.041   13.347    0.000
+##     s_preInt_Cr_34    0.957    0.066   14.587    0.000
+##     s_preInt_Cr_36    0.570    0.043   13.288    0.000
+##     s_prInt_Slf_19    0.798    0.053   15.021    0.000
+##     s_prInt_Slf_22    0.731    0.049   15.031    0.000
+##     s_prInt_Slf_27    0.936    0.062   15.043    0.000
+##     s_prInt_Slf_31    1.277    0.085   14.982    0.000
+##     s_prInt_Slf_35    1.193    0.079   15.027    0.000
+##     interest          1.000</code></pre>
+<p>Results show that the model fit more poorly than the multidimensional model.</p>
+</div>
+<div id="unidimensional-model-post" class="section level1">
+<h1>Unidimensional Model (post)</h1>
+<pre class="r"><code>uni.post.interest &lt;- ' 
+interest  =~ s_postInt_Des_15 + s_postInt_Des_17 + s_postInt_Des_21 + s_postInt_Des_24 + s_postInt_Des_26 + s_postInt_Des_29 + s_postInt_Des_33 + s_postInt_Car_16 + s_postInt_Car_18 + s_postInt_Car_20 + s_postInt_Car_23 + s_postInt_Car_25 + s_postInt_Car_28 + s_postInt_Car_30 + s_postInt_Car_32 + s_postInt_Car_34 + s_postInt_Car_36 + s_postInt_Self_19 + s_postInt_Self_22 + s_postInt_Self_27 + s_postInt_Self_31 + s_postInt_Self_35
+'
+postUniInt.fit.1 &lt;- cfa(uni.post.interest, std.lv = TRUE, orthogonal = FALSE, data=joined.dat, missing='fiml')
+summary(postUniInt.fit.1, fit.measures=TRUE)</code></pre>
+<pre><code>## lavaan (0.5-20) converged normally after  56 iterations
+## 
+##                                                   Used       Total
+##   Number of observations                           470         477
+## 
+##   Number of missing patterns                        57
+## 
+##   Estimator                                         ML
+##   Minimum Function Test Statistic             1381.766
+##   Degrees of freedom                               209
+##   P-value (Chi-square)                           0.000
+## 
+## Model test baseline model:
+## 
+##   Minimum Function Test Statistic             4811.032
+##   Degrees of freedom                               231
+##   P-value                                        0.000
+## 
+## User model versus baseline model:
+## 
+##   Comparative Fit Index (CFI)                    0.744
+##   Tucker-Lewis Index (TLI)                       0.717
+## 
+## Loglikelihood and Information Criteria:
+## 
+##   Loglikelihood user model (H0)             -13912.851
+##   Loglikelihood unrestricted model (H1)     -13221.967
+## 
+##   Number of free parameters                         66
+##   Akaike (AIC)                               27957.701
+##   Bayesian (BIC)                             28231.782
+##   Sample-size adjusted Bayesian (BIC)        28022.310
+## 
+## Root Mean Square Error of Approximation:
+## 
+##   RMSEA                                          0.109
+##   90 Percent Confidence Interval          0.104  0.115
+##   P-value RMSEA &lt;= 0.05                          0.000
+## 
+## Standardized Root Mean Square Residual:
+## 
+##   SRMR                                           0.089
+## 
+## Parameter Estimates:
+## 
+##   Information                                 Observed
+##   Standard Errors                             Standard
+## 
+## Latent Variables:
+##                    Estimate  Std.Err  Z-value  P(&gt;|z|)
+##   interest =~                                         
+##     s_pstInt_Ds_15    0.744    0.041   18.293    0.000
+##     s_pstInt_Ds_17    0.711    0.051   13.893    0.000
+##     s_pstInt_Ds_21    0.573    0.051   11.226    0.000
+##     s_pstInt_Ds_24    0.759    0.051   14.815    0.000
+##     s_pstInt_Ds_26    0.397    0.039   10.043    0.000
+##     s_pstInt_Ds_29    0.915    0.053   17.389    0.000
+##     s_pstInt_Ds_33    0.894    0.047   18.882    0.000
+##     s_pstInt_Cr_16    0.575    0.053   10.773    0.000
+##     s_pstInt_Cr_18    0.755    0.051   14.903    0.000
+##     s_pstInt_Cr_20    0.596    0.055   10.805    0.000
+##     s_pstInt_Cr_23    0.798    0.049   16.183    0.000
+##     s_pstInt_Cr_25    0.882    0.051   17.210    0.000
+##     s_pstInt_Cr_28    0.631    0.047   13.405    0.000
+##     s_pstInt_Cr_30    0.731    0.054   13.538    0.000
+##     s_pstInt_Cr_32    0.981    0.047   20.928    0.000
+##     s_pstInt_Cr_34    0.603    0.053   11.416    0.000
+##     s_pstInt_Cr_36    0.950    0.048   19.619    0.000
+##     s_pstInt_Sl_19    0.338    0.048    6.997    0.000
+##     s_pstInt_Sl_22    0.375    0.042    8.847    0.000
+##     s_pstInt_Sl_27    0.471    0.048    9.726    0.000
+##     s_pstInt_Sl_31    0.457    0.057    7.982    0.000
+##     s_pstInt_Sl_35    0.376    0.055    6.859    0.000
+## 
+## Intercepts:
+##                    Estimate  Std.Err  Z-value  P(&gt;|z|)
+##     s_pstInt_Ds_15    3.919    0.046   84.523    0.000
+##     s_pstInt_Ds_17    3.002    0.055   54.533    0.000
+##     s_pstInt_Ds_21    2.659    0.053   50.271    0.000
+##     s_pstInt_Ds_24    3.440    0.056   61.884    0.000
+##     s_pstInt_Ds_26    4.237    0.040  105.761    0.000
+##     s_pstInt_Ds_29    3.656    0.059   61.844    0.000
+##     s_pstInt_Ds_33    3.337    0.055   61.032    0.000
+##     s_pstInt_Cr_16    3.184    0.055   57.821    0.000
+##     s_pstInt_Cr_18    3.027    0.055   54.963    0.000
+##     s_pstInt_Cr_20    3.115    0.057   54.693    0.000
+##     s_pstInt_Cr_23    3.484    0.054   63.932    0.000
+##     s_pstInt_Cr_25    3.570    0.058   62.045    0.000
+##     s_pstInt_Cr_28    2.422    0.050   48.258    0.000
+##     s_pstInt_Cr_30    2.986    0.057   52.020    0.000
+##     s_pstInt_Cr_32    3.567    0.056   63.884    0.000
+##     s_pstInt_Cr_34    3.599    0.055   65.599    0.000
+##     s_pstInt_Cr_36    2.787    0.056   49.350    0.000
+##     s_pstInt_Sl_19    3.456    0.048   71.851    0.000
+##     s_pstInt_Sl_22    3.923    0.043   92.124    0.000
+##     s_pstInt_Sl_27    4.116    0.049   83.575    0.000
+##     s_pstInt_Sl_31    3.609    0.057   62.841    0.000
+##     s_pstInt_Sl_35    3.804    0.054   70.276    0.000
+##     interest          0.000                           
+## 
+## Variances:
+##                    Estimate  Std.Err  Z-value  P(&gt;|z|)
+##     s_pstInt_Ds_15    0.456    0.033   13.782    0.000
+##     s_pstInt_Ds_17    0.881    0.061   14.397    0.000
+##     s_pstInt_Ds_21    0.963    0.065   14.772    0.000
+##     s_pstInt_Ds_24    0.855    0.059   14.380    0.000
+##     s_pstInt_Ds_26    0.578    0.039   14.788    0.000
+##     s_pstInt_Ds_29    0.774    0.056   13.793    0.000
+##     s_pstInt_Ds_33    0.579    0.043   13.538    0.000
+##     s_pstInt_Cr_16    1.082    0.073   14.879    0.000
+##     s_pstInt_Cr_18    0.838    0.058   14.386    0.000
+##     s_pstInt_Cr_20    1.134    0.077   14.737    0.000
+##     s_pstInt_Cr_23    0.747    0.053   14.228    0.000
+##     s_pstInt_Cr_25    0.758    0.054   13.961    0.000
+##     s_pstInt_Cr_28    0.770    0.053   14.617    0.000
+##     s_pstInt_Cr_30    0.981    0.068   14.431    0.000
+##     s_pstInt_Cr_32    0.479    0.038   12.774    0.000
+##     s_pstInt_Cr_34    1.030    0.070   14.786    0.000
+##     s_pstInt_Cr_36    0.587    0.044   13.410    0.000
+##     s_pstInt_Sl_19    0.944    0.063   14.950    0.000
+##     s_pstInt_Sl_22    0.701    0.047   14.978    0.000
+##     s_pstInt_Sl_27    0.892    0.060   14.807    0.000
+##     s_pstInt_Sl_31    1.307    0.087   14.946    0.000
+##     s_pstInt_Sl_35    1.211    0.081   15.033    0.000
+##     interest          1.000</code></pre>
+<p>Results show that the model fit more poorly than the multidimensional model.</p>
 </div>
 
 
