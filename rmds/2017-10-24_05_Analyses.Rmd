@@ -1,0 +1,224 @@
+---
+title: "CFA Analyses of the Measures"
+output:
+  html_document:
+    theme: paper
+    toc: true
+  html_notebook: null
+---
+
+# Import the data 
+```{r, import, message=FALSE, warning=FALSE}
+# load packaes
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(MplusAutomation, psych, tidyr, foreign, ggplot2, ggalt, ggthemes, 
+    readr, dplyr, knitr, scales, pander, lavaan, kableExtra)
+# Import the data ----
+joined.dat <- readRDS(file = "../data/joined.dat")
+```
+
+
+# CFA of the science interest items (pre science fair exposure)
+
+A confirmatory factor analysis was used to test a three factor model of students’ science interest. Data was derived form the survey administered during the "pre science fair exposure" period of the study. A total of 22 items were used for this analysis. The three factors examined for this analysis were hypothesized to pertain to "desire to do science", "career interest in science", and "self-concept" in science. The model was fit with the 'lavaan' package in R. 
+
+## Setting up the CFA model
+
+The following sets up the relationships between indicators and constructs. 
+```{r, cfa.preInt, message=FALSE, warning=FALSE}
+# desire <- paste( 'desire', ' =~', paste(colnames(select(pre.int, contains("s_preInt_Des_"))), collapse=' + ' ) )
+# desire
+# 
+# interest <- paste( 'interest', ' =~', paste(colnames(select(pre.int, contains("s_preInt_Car_"))), collapse=' + ' ) )
+# interest
+# 
+# selfConcept <- paste( 'selfConcept', ' =~', paste(colnames(select(pre.int, contains("s_preInt_Self_"))), collapse=' + ' ) )
+# selfConcept
+
+# setup the model in lavaan 
+m.pre.int <- ' 
+desire  =~ s_preInt_Des_15 + s_preInt_Des_17 + s_preInt_Des_21 + s_preInt_Des_24 + s_preInt_Des_26 + s_preInt_Des_29 + s_preInt_Des_33
+
+career  =~ s_preInt_Car_16 + s_preInt_Car_18 + s_preInt_Car_20 + s_preInt_Car_23 + s_preInt_Car_25 + s_preInt_Car_28 + s_preInt_Car_30 + s_preInt_Car_32 + s_preInt_Car_34 + s_preInt_Car_36
+
+selfConcept  =~ s_preInt_Self_19 + s_preInt_Self_22 + s_preInt_Self_27 + s_preInt_Self_31 + s_preInt_Self_35
+'
+```
+
+Fit the model in lavaan with: variances of latent variables set to 1, assuming correlated factors, and using FIML to handle missing data. 
+```{r, cfa.preInt.fit, message=FALSE, warning=FALSE}
+# fit the model with: variances of latent variables set to 1, assuming correlated factors, and usinfg FIML to handle missing data
+preInt.fit.1 <- cfa(m.pre.int, std.lv = TRUE, orthogonal = FALSE, data=joined.dat, missing='fiml')
+```
+
+## Model output
+
+### Model fit statistics 
+
+Model fit statistics are provided to give a context for how the data fit the hypothesized model (i.e., RMSEA, CFI, and TLI), and how this model compares to subsequent models (i.e., AIC, BIC, etc.)
+```{r, cfa.preInt.fit.stat, message=FALSE, warning=FALSE}
+preInt.fit.1.measures <- fitMeasures(preInt.fit.1)
+kable(tibble(
+CFI = preInt.fit.1.measures[9],
+TLI = preInt.fit.1.measures[10],
+AIC = preInt.fit.1.measures[19],
+BIC = preInt.fit.1.measures[20],
+RMSEA = preInt.fit.1.measures[23],
+Lower = preInt.fit.1.measures[24],
+Upper = preInt.fit.1.measures[25]
+))
+```
+
+Results show that the model generally fits poorly. Specifically, the CFI and TLI values were below their minimally accepted criteria of .90, and the RMSEA value was above the criteria of .05. 
+
+### Model parameter estimates
+
+Examine the factor loadings for the model estimates for the model.
+```{r, cfa.preInt.fit.param, message=FALSE, warning=FALSE}
+parameterEstimates(preInt.fit.1, standardized=TRUE) %>% 
+  filter(op == "=~") %>% 
+  select('Latent Factor'=lhs, Indicator=rhs, B=est, SE=se, Z=z, 'p-value'=pvalue, Beta=std.all) %>% 
+  kable(digits = 3, format="html", caption="Factor Loadings") %>%
+    kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+```
+
+### Model residuals 
+
+Item residuals give a sense of how the hypothesized factors fit the correlation matrix between items. It is important to scrutinize items with residuals > 1.0.  
+```{r, cfa.preInt.fit.res, message=FALSE, warning=FALSE}
+parameterEstimates(preInt.fit.1, standardized=TRUE) %>% 
+  filter(op == "~~") %>% 
+  select('Indicator'=lhs, Indicator=rhs, 'Estiamte'=est) %>% 
+  kable(digits = 3, format="html", caption="Factor Loadings") %>%
+    kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+```
+
+Results showed that there was notable variance remaining in the indicators (i.e., > .10), after accounting for the factor, which is another indication that the model fit poorly. 
+
+### Model modification indices
+
+Modification indices are provided to give a sense of the what parameters in the model could be freed to improve model fit. 
+
+```{r, message=FALSE, warning=FALSE}
+kable(modificationIndices(preInt.fit.1, sort.=TRUE, minimum.value=10), digits=3) %>%
+    kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+```
+
+Modification indicies showed that the mode could be improved by adding correlations between several items. Specifically, the largest potential modifications included: 
+
+- residual correlations between s_preInt_Des_17	~~	s_preInt_Des_21
+- residual correlations between s_preInt_Car_25	~~	s_preInt_Car_28
+- residual correlations between s_preInt_Car_30	~~	s_preInt_Car_32
+- cross-loading for self-concept on s_preInt_Car_34
+- cross-loading for desire on s_preInt_Self_27
+
+## Summmary of results
+
+Overall, the model suggests that the hypothesized model does not adequately capture the relationships between the indicators. The postsence of such large residual correlations between items suggests the postsence of unspecified factors or content within items that overlaps with other dimensions specified in the model. 
+
+# CFA of the science interest items (post science fair exposure)
+
+A confirmatory factor analysis was used to test a three factor model of students’ science interest. Data was derived form the survey administered during the "post science fair exposure" period of the study. A total of 22 items were used for this analysis. The three factors examined for this analysis were hypothesized to pertain to "desire to do science", "career interest in science", and "self-concept" in science. The model was fit with the 'lavaan' package in R. 
+
+## Setting up the CFA model
+
+The following sets up the relationships between indicators and constructs. 
+```{r, cfa.postInt, message=FALSE, warning=FALSE}
+m.post.int <- ' 
+desire  =~ s_postInt_Des_15 + s_postInt_Des_17 + s_postInt_Des_21 + s_postInt_Des_24 + s_postInt_Des_26 + s_postInt_Des_29 + s_postInt_Des_33
+
+career  =~ s_postInt_Car_16 + s_postInt_Car_18 + s_postInt_Car_20 + s_postInt_Car_23 + s_postInt_Car_25 + s_postInt_Car_28 + s_postInt_Car_30 + s_postInt_Car_32 + s_postInt_Car_34 + s_postInt_Car_36
+
+selfConcept  =~ s_postInt_Self_19 + s_postInt_Self_22 + s_postInt_Self_27 + s_postInt_Self_31 + s_postInt_Self_35
+'
+```
+
+Fit the model in lavaan with: variances of latent variables set to 1, assuming correlated factors, and using FIML to handle missing data. 
+```{r, cfa.postInt.fit, message=FALSE, warning=FALSE}
+# fit the model with: variances of latent variables set to 1, assuming correlated factors, and usinfg FIML to handle missing data
+postInt.fit.1 <- cfa(m.post.int, std.lv = TRUE, orthogonal = FALSE, data=joined.dat, missing='fiml')
+```
+
+## Model output
+
+### Model fit statistics 
+
+Model fit statistics are provided to give a context for how the data fit the hypothesized model (i.e., RMSEA, CFI, and TLI), and how this model compares to subsequent models (i.e., AIC, BIC, etc.)
+```{r, cfa.postInt.fit.stat, message=FALSE, warning=FALSE}
+postInt.fit.1.measures <- fitMeasures(postInt.fit.1)
+kable(tibble(
+CFI = postInt.fit.1.measures[9],
+TLI = postInt.fit.1.measures[10],
+AIC = postInt.fit.1.measures[19],
+BIC = postInt.fit.1.measures[20],
+RMSEA = postInt.fit.1.measures[23],
+Lower = postInt.fit.1.measures[24],
+Upper = postInt.fit.1.measures[25]
+))
+```
+
+Results show that the model generally fits poorly. Specifically, the CFI and TLI values were below their minimally accepted criteria of .90, and the RMSEA value was above the criteria of .05. 
+
+### Model parameter estimates
+
+Examine the factor loadings for the model estimates for the model.
+```{r, cfa.postInt.fit.param, message=FALSE, warning=FALSE}
+parameterEstimates(postInt.fit.1, standardized=TRUE) %>% 
+  filter(op == "=~") %>% 
+  select('Latent Factor'=lhs, Indicator=rhs, B=est, SE=se, Z=z, 'p-value'=pvalue, Beta=std.all) %>% 
+  kable(digits = 3, format="html", caption="Factor Loadings") %>%
+    kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+```
+
+Results showed now discernible pattern in the magnitude of factor loadings in relation to the respective factors. 
+
+### Model residuals 
+
+Item residuals give a sense of how the hypothesized factors fit the correlation matrix between items. It is important to scrutinize items with residuals > 1.0.  
+```{r, cfa.postInt.fit.res, message=FALSE, warning=FALSE}
+parameterEstimates(postInt.fit.1, standardized=TRUE) %>% 
+  filter(op == "~~") %>% 
+  select('Indicator'=lhs, Indicator=rhs, 'Estiamte'=est) %>% 
+  kable(digits = 3, format="html", caption="Factor Loadings") %>%
+    kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+```
+
+Results showed that there was notable variance remaining in the indicators (i.e., > .10), after accounting for the factor, which is another indication that the model fit poorly. 
+
+### Model modification indices
+
+Modification indices are provided to give a sense of the what parameters in the model could be freed to improve model fit. 
+
+```{r, message=FALSE, warning=FALSE}
+kable(modificationIndices(postInt.fit.1, sort.=TRUE, minimum.value=10), digits=3) %>%
+    kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+```
+
+Modification indicies showed that the mode could be improved by adding correlations between several items. Specifically, the largest potential modifications included: 
+
+- adding a residual correlation between s_postInt_Car_16	and s_postInt_Car_20
+
+- adding a residual correlation between s_postInt_Car_23	and	s_postInt_Car_32
+
+- adding a residual correlation between s_postInt_Car_16	and s_postInt_Car_32
+
+The modification indices also showed that several items cross-loaded onto other factors: 
+
+- self-concept on s_postInt_Car_34
+
+- desire on s_postInt_Des_33, s_postInt_Self_35, s_postInt_Car_32
+
+- career on s_postInt_Des_15, s_postInt_Self_35
+
+**Note.** These should only be added if they make sense substantively, and if you'd expect these correlations to exist in future data. 
+
+## Summmary of results
+
+Overall, the model suggests that the hypothesized model does not adequately capture the relationships between the indicators. The postsence of such large residual correlations between items suggests the postsence of unspecified factors or content within items that overlaps with other dimensions specified in the model. Further, the overall model showed a degredation in fit when compared to the "pre" survey, which can be observerd through: worse model fit statistics, smaller factor loadings, and larger residual variances. This suggests that the factor structure is likely not invariant across time, though formal tests for this were not carried out.
+
+# Sandbox
+```{r, message=FALSE, warning=FALSE}
+
+
+```
+
