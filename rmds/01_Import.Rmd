@@ -1,6 +1,7 @@
 ---
 title: "01_Data Import"
 author: "Brandon Foster, Ph.D."
+date: "`r format(Sys.time(), '%d %B, %Y, %H:%M')`"
 output: html_notebook
 ---
 
