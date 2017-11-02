@@ -48,7 +48,7 @@ efa.2.5.promax <- lapply(2:5, function(x) {fa(items, nfactors=x, fm="pa", rotate
                                               max.iter = 500)})
 ```
 
-Next, the fit statistics for all four factor models are provided. An easy way to ascertain the best "fitting" model is to look for the model with the lowest BIC. The TLI and RMSEA values can then be used to examine how well that model fit the data. Results indicate that the 2-factor model exhibits the smallest BIC statistic, followed by the 5-factor soultuon. Of these two models, the 5-factor model shows the smallest fit statistics with RMSEA value = about .05, and TLI > .90. This result indicates that the patterns in the factor loadings for both should be examined. 
+Next, the fit statistics for all four factor models are provided. An easy way to ascertain the best "fitting" model is to look for the model with the lowest BIC. The TLI and RMSEA values can then be used to examine how well that model fit the data. Results indicate that the 2-factor model exhibits the smallest BIC statistic, followed by the 5-factor solution. Of these two models, the 5-factor model shows the smallest fit statistics with RMSEA value = about .05, and TLI > .90. This result indicates that the patterns in the factor loadings for both should be examined. 
 
 ```{r, efa.1.fit, message=FALSE, warning=FALSE, tidy=TRUE}
 tibble(
@@ -72,8 +72,16 @@ tibble(
 ```
 
 ## 2-factor solution
-Now we will take a look at the details for the 2-factor solution. First, let's look at a factor diagram for the 2-factor solution. This can be an easy way to visualize the solution. From a substantive perspective, this solutions is quite intuitive. When inspecting the diagram you can see that the first factor loads onto all of the career interest in science items **and** the desire to do science items. We might expect that the items for these two concepts are highly correlated with one another... that students who have a high desire to do science would most likely indicate that they were interested in a career in science. Said in other words, we would expect the responses to these items to covary. The fact that the first factor loads onto all of these items means that they likely do not differentiate distinctly enough to warrant creating a factor score for each. The second factor captures all of the self-concept items. Further, the factor loadings for the indicators for this factor are all >= .50. In addition, the correlation between the first and second factor is = .60, squarring this value we find that the the shared variance between the factors is 16%, so while there is a relationship between the two factors, each is measuring something distinct. Overall, this is about as clean cut a factor solution as you can find in an exploratory analyses. However, please note that while this solution "makes sense," we still don't have an understanding of how well the items are measuring each factor. We'll need to dig deeper to gain those insights.
+Now we will take a look at the details for the 2-factor solution. First, let's look at a factor diagram for the 2-factor solution. This can be an easy way to visualize the solution. 
 
 ```{r, efa.1.2diag, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
 fa.diagram(efa.2.5.promax[[1]], main="Factor diagram for the 2-factor solution")
+```
+
+From a substantive perspective, this solutions is quite intuitive. When inspecting the diagram you can see that the first factor loads onto all of the career interest in science items **and** the desire to do science items. We might expect that the items for these two concepts are highly correlated with one another... that students who have a high desire to do science would most likely indicate that they were interested in a career in science. Said in other words, we would expect the responses to these items to covary. The fact that the first factor loads onto all of these items means that they likely do not differentiate distinctly enough to warrant creating a factor score for each. The second factor captures all of the self-concept items. Further, the factor loadings for the indicators for this factor are all >= .50. In addition, the correlation between the first and second factor is = .60, squaring this value we find that the the shared variance between the factors is 16%, so while there is a relationship between the two factors, each is measuring something distinct. Overall, this is about as clean cut a factor solution as you can find in an exploratory analyses. However, please note that while this solution "makes sense," we still don't have an understanding of how well the items are measuring each factor. We know from examining the RMSEA and TLI that those values fall in the range of what could be described as marginally acceptable. We'll need to dig deeper to to understand how well each item is measuring the respective construct. 
+
+The more specific information in the output provides additional insights.
+
+```{r, efa.1.2out, message=FALSE, warning=FALSE, tidy=TRUE}
+efa.2.5.promax[[1]]
 ```
