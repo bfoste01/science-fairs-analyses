@@ -48,27 +48,32 @@ items.stringr.prune <- items %>%
 The following analyses uses an oblique rotation and a principal axis method for extraction. This will produce an [OLS solution which is not as sensitive to improper matrices as is the maximum likelihood method, and will sometimes produce more interpretable results](http://personality-project.org/r/psych/HowTo/factor.pdf). The following analysis utilizes a promax rotation, which is standard for correlated factors. 
 ```{r, efa.1, message=FALSE,  error=FALSE, warning=FALSE, tidy=TRUE}
 # run the EFA model for each numer of factors. 
-efa.2.5.promax <- lapply(2:5, function(x) {fa(items, nfactors=x, fm="pa", rotate = "promax", 
+efa.2.5.promax <- lapply(1:5, function(x) {fa(items, nfactors=x, fm="pa", rotate = "promax", 
                                               max.iter = 500)})
 ```
 
-Next, the fit statistics for all four factor models are provided. An easy way to ascertain the best "fitting" model is to look for the model with the lowest BIC. The TLI and RMSEA values can then be used to examine how well that model fit the data. Results indicate that the 2-factor model exhibits the smallest BIC statistic, followed by the 5-factor solution. Of these two models, the 5-factor model shows the smallest fit statistics with RMSEA value = about .05, and TLI > .90. This result indicates that the patterns in the factor loadings for both should be examined. 
+Next, the fit statistics for all four factor models are provided. An easy way to ascertain the best "fitting" model is to look for the model with the lowest BIC. The TLI and RMSEA values can then be used to examine how well that model fit the data. Results indicate that the 2-factor model exhibits the smallest BIC statistic, followed by the 5-factor solution. Of these two models, the 5-factor model shows the smallest fit statistics with RMSEA value = about .05, and TLI > .90. This result indicates that the patterns in the factor loadings for both should be examined. Results indicate that a 1 factor model exhibits the smallest BIC. This could indicate that unidimensional model best represents the data. We'll turn to this in subsequent analyses when IRT models are explored. However, in the analyses that follow in this document, strictly multidimensional structues will be explored.  
 
 ```{r, efa.1.fit, message=FALSE,  error=FALSE, warning=FALSE, tidy=TRUE}
 tibble(
-  "Number of Factors" = c(2, 3, 4, 5),
+  "Number of Factors" = c(1, 2, 3, 4, 5),
   "Tucker-Lewis Index (TLI)" = c(efa.2.5.promax[[1]]$TLI, efa.2.5.promax[[2]]$TLI,
-                                 efa.2.5.promax[[3]]$TLI, efa.2.5.promax[[4]]$TLI), 
+                                 efa.2.5.promax[[3]]$TLI, efa.2.5.promax[[4]]$TLI,
+                                 efa.2.5.promax[[5]]$TLI), 
   "RMSEA" = c(efa.2.5.promax[[1]]$RMSEA[1], efa.2.5.promax[[2]]$RMSEA[1], 
-              efa.2.5.promax[[3]]$RMSEA[1], efa.2.5.promax[[4]]$RMSEA[1]),
+              efa.2.5.promax[[3]]$RMSEA[1], efa.2.5.promax[[4]]$RMSEA[1],
+              efa.2.5.promax[[5]]$RMSEA[1]),
   "Lower 90% RMSEA" = c(efa.2.5.promax[[1]]$RMSEA[2], efa.2.5.promax[[2]]$RMSEA[2], 
-                        efa.2.5.promax[[3]]$RMSEA[2], efa.2.5.promax[[4]]$RMSEA[2]),
+                        efa.2.5.promax[[3]]$RMSEA[2], efa.2.5.promax[[4]]$RMSEA[2],
+                        efa.2.5.promax[[5]]$RMSEA[2]),
   "Upper 90% RMSEA" = c(efa.2.5.promax[[1]]$RMSEA[3], efa.2.5.promax[[2]]$RMSEA[3], 
-                       efa.2.5.promax[[3]]$RMSEA[3], efa.2.5.promax[[4]]$RMSEA[3]),
+                       efa.2.5.promax[[3]]$RMSEA[3], efa.2.5.promax[[4]]$RMSEA[3],
+                       efa.2.5.promax[[5]]$RMSEA[3]),
   "Bayesian Information Criterion (BIC)" = c(efa.2.5.promax[[1]]$BIC, 
                                              efa.2.5.promax[[2]]$BIC, 
                                              efa.2.5.promax[[3]]$BIC, 
-                                             efa.2.5.promax[[4]]$BIC)
+                                             efa.2.5.promax[[4]]$BIC,
+                                             efa.2.5.promax[[5]]$BIC)
   ) %>%
   kable(digits = 3, format="html", caption="Fit statistics for the four different EFA 
           models") %>%
@@ -79,12 +84,16 @@ tibble(
 Now we will take a look at the details for the 2-factor solution. First, let's look at a factor diagram for the 2-factor solution. This can be an easy way to visualize the solution. 
 
 ```{r, efa.1.2diag, message=FALSE,  error=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
-fa.diagram(efa.2.5.promax[[1]], main="Factor diagram for the 2-factor solution")
+fa.diagram(efa.2.5.promax[[2]], main="Factor diagram for the 2-factor solution")
 ```
 
 From a substantive perspective, this solutions is quite intuitive. When inspecting the diagram you can see that the first factor loads onto all of the career interest in science items **and** the desire to do science items. We might expect that the items for these two concepts are highly correlated with one another... that students who have a high desire to do science would most likely indicate that they were interested in a career in science. Said in other words, we would expect the responses to these items to covary. The fact that the first factor loads onto all of these items means that they likely do not differentiate distinctly enough to warrant creating a factor score for each. The second factor captures all of the self-concept items. Further, the factor loadings for the indicators for this factor are all >= .50. In addition, the correlation between the first and second factor is = .60, squaring this value we find that the the shared variance between the factors is 16%, so while there is a relationship between the two factors, each is measuring something distinct. Overall, this is about as clean cut a factor solution as you can find in an exploratory analyses. However, please note that while this solution "makes sense," we still don't have an understanding of how well the items are measuring each factor. We know from examining the RMSEA and TLI that those values fall in the range of what could be described as marginally acceptable. We'll need to dig deeper to to understand how well each item is measuring the respective construct. 
 
-The more specific information in the output provides additional insights.
+The more specific information in the output provides additional insights. Some notes on interpreting the solution:
+
+- Interpretation is the process of “naming factors” based on the indicators that “load on” them. Which indicators “load” is decided based on a “cutoff”
+
+- Cutoffs usually range from .3 to .4 ( +/- ). However, there is a tradeoff, as setting a higher criteria for factor loadings might leave some factors ill-defined or completely undefined, while setting a lower criteria increases the likelihood that indicators load onto more than one factor.
 
 ```{r, efa.1.2out, message=FALSE,  error=FALSE, warning=FALSE, tidy=TRUE}
 # print the 2-factor solution
@@ -92,34 +101,12 @@ print(fa(items, nfactors=2, fm="pa", rotate = "promax",
          max.iter = 500), digits=2, cut=.3, sort=TRUE)
 
 # print a plot with scree and parallel tests
-ev <- eigen(cor(items, use="complete.obs")) # get eigenvalues
-ap <- parallel(subject=nrow(items),var=ncol(items),
-  rep=100,cent=.05)
-nS <- nScree(x=ev$values, aparallel=ap$eigen$qevpea)
-plotnScree(nS)
+# ev <- eigen(cor(items, use="complete.obs")) # get eigenvalues
+# ap <- parallel(subject=nrow(items),var=ncol(items),
+#   rep=100,cent=.05)
+# nS <- nScree(x=ev$values, aparallel=ap$eigen$qevpea)
+# plotnScree(nS)
 ```
-
-EFA: What is the structure of the latent factors that produced the covariances among the observed indicators (factor = predictor)?
-
-
-Rotations
-The idea of rotation is to redefine the factor loadings to obtain simple structure
-Ø Each factor should have indicators with strong loadings § Obvious which indicators measure it (+/-) and which don’t
-Ø Each indicator should load strongly on only one factor
-§ Know what each item is ‘for’
-§ Construct measured is readily identifiable
-§ Indicators should have large communalities
-
-Promax rotation:
-Computes best orthogonal solution and then “relaxes” orthogonality constraints to better “spear” indicator clusters with factor vectors (give simpler structure)
-
-### Interpreting the solution
-Interpretation is the process of “naming factors” based on the indicators that “load on” them. Which indicators “load” is decided based on a “cutoff”
-Ø Cutoffs usually range from .3 to .4 ( +/- )
-Ø Note that significance tests of loadings are not usually given!!
-§ Although can be obtained separately though other procedures or in Mplus
-
-However, there is a tradeoff, as setting a higher criteria for factor loadings might leave some factors ill-defined or completely undefined, while setting a lower criteria increases the likelihood that indicators load onto more than one factor.
 
 # ICM-CFA 
 
@@ -286,7 +273,77 @@ A perhaps more critical issue is whether the factor itself is adequately capture
  
 Forcing cross-loadings to be exactly zero involves ignoring some potentially true influence of a factor on indicators presenting some residual association with these factors over and above their association with their main a priori factor.
 
-ESEM EFA 2-factor
+## ESEM EFA 1-factor
+
+The following model considers a unidimensional model. As such, there is no need to examine the presecnce of cross loaders in this model, but examing correlated residual variances cold be useful. 
+
+```{r, efaSEM1.cont, message=FALSE,  error=FALSE, warning=FALSE, tidy=TRUE}
+# construct the MPlus code for the model
+efa.esem.1.obj.cont <- mplusObject(
+  TITLE = "Title: EFA of 1-factor solution using ESEM considering indicators as continuous;",
+  VARIABLE = "
+  Missing are all (-99, -9, -8, -1);,
+  USEVARIABLES =    Des_15  Des_17  Des_21  
+                    Des_24 Des_26  Des_29  
+                    Des_33  Car_16 Car_18  
+                    Car_20  Car_23  Car_25 
+                    Car_28  Car_30  Car_32  
+                    Car_34 Car_36  Self_19 
+                    Self_22 Self_27 Self_31 
+                    Self_35;",
+  ANALYSIS = "
+  ITERATIONS = 10000;
+  ESTIMATOR = MLR;",
+  MODEL = "
+  f1 BY Des_15  Des_17  Des_21  Des_24 
+  Des_26  Des_29  Des_33  Car_16
+  Car_18  Car_20  Car_23  Car_25
+  Car_28  Car_30  Car_32  Car_34 
+  Car_36  Self_19 Self_22 Self_27
+  Self_31 Self_35 (*1);",
+  OUTPUT = "SAMPSTAT MODINDICES(3.8) STANDARDIZED tech1;",
+rdata = items.stringr.prune)
+
+# examine the mplus model syntax
+#str(pathmodel, max.level = 1, nchar.max = 30)
+
+# compile the code and send to mplus to run the model
+efaSEM1.cont_mplus <- mplusModeler(efa.esem.1.obj.cont,
+  dataout = c("../data/06_Analayses_EfaSEMCont.1.csv"),
+  modelout = c("../mplus/06_Analayses_EfaSEMCont.1.inp"), run=TRUE)
+```
+
+Results show the model fits the data inadequately, with CFI and TLI < .90 and RMSE > .05. 
+```{r, efaSEM1.cont.sum, message=FALSE,  error=FALSE, warning=FALSE, tidy=TRUE}
+# extract model summaries
+efaSEM1.cont_summary <- readModels("../mplus/06_Analayses_EfaSEMCont.1.out")
+
+# extract model summary statistics
+efaSEM1.cont_summaryStats <- dplyr::select(efaSEM2.cont_summary$summaries, CFI, TLI, RMSEA_Estimate, RMSEA_90CI_LB, RMSEA_90CI_UB, SRMR, AIC, AICC, BIC, aBIC, AICC) %>%
+kable(digits = 3, format="html", caption="Model summary statistics for the 1-factor 
+        (E)SEM model with contintuous indicators") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+
+# print results
+efaSEM1.cont_summaryStats
+```
+
+Let's look at the parameter estimates for the model: 
+```{r, efaSEM1.cont.param, message=FALSE,  error=FALSE, warning=FALSE, tidy=TRUE, results = 'asis'}
+# model parameters
+efaSEM1.cont_summary$parameters 
+```
+
+Modification indicies show that several items which share similar content should be correlated. This should only be specified if in examining the items these specifications make sense. 
+```{r, efaSEM1.cont.mi, message=FALSE,  error=FALSE, warning=FALSE, tidy=TRUE}
+# model modification indices
+efaSEM1.cont_summary$mod_indices %>%
+  kable(digits = 3, format="html", caption="Model modification indices for the 1-factor EFA ESEM") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+```
+
+## ESEM EFA 2-factor
+A 2-factor emerged as a potential candidate model in the EFA analyses above. However, when the CFA for the 2-factor model was examined, the modification indicies showed that several items "cross-loaded." This model allows to examine the fit of a model that allows for all items to cross load onto other factors. 
 ```{r, efaSEM2.cont, message=FALSE,  error=FALSE, warning=FALSE, tidy=TRUE}
 # construct the MPlus code for the model
 efa.esem.2.obj.cont <- mplusObject(
@@ -321,18 +378,37 @@ rdata = items.stringr.prune)
 efaSEM2.cont_mplus <- mplusModeler(efa.esem.2.obj.cont,
   dataout = c("../data/06_Analayses_EfaSEMCont.2.csv"),
   modelout = c("../mplus/06_Analayses_EfaSEMCont.2.inp"), run=TRUE)
+```
 
+Again, model fit statistics show a poor fitting model. 
+```{r, efaSEM2.cont.sum, message=FALSE,  error=FALSE, warning=FALSE, tidy=TRUE}
 # extract model summaries
 efaSEM2.cont_summary <- readModels("../mplus/06_Analayses_EfaSEMCont.2.out")
 
 # extract model summary statistics
-efaSEM2.cont_summaryStats <- dplyr::select(efaSEM2.cont_summary$summaries, CFI, TLI, RMSEA_Estimate, RMSEA_90CI_LB, RMSEA_90CI_UB, SRMR, AIC, AICC, BIC, aBIC, AICC) 
+efaSEM2.cont_summaryStats <- dplyr::select(efaSEM2.cont_summary$summaries, CFI, TLI, RMSEA_Estimate, RMSEA_90CI_LB, RMSEA_90CI_UB, SRMR, AIC, AICC, BIC, aBIC, AICC) %>%
+kable(digits = 3, format="html", caption="Model summary statistics for the 2-factor 
+        (E)SEM model with contintuous indicators") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
 
+# print results
+efaSEM2.cont_summaryStats
+```
+
+Model parameters are interesting, as the magnitude of factor loadings show that the self-concept items hang together well, and the desire/career interest in science items seem to hold together as one factor too. Most of the items that cross load are small in magnitude. However, a 1-factor model, while poorly fitting, still fit better than this model. It would be interesting to see if the items that load strongly onto the respective factors are the same items that the 1-factor model showed as residual correlations. 
+```{r, efaSEM2.cont.param, message=FALSE,  error=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
 # model parameters
-efaSEM2.cont_summary$parameters 
+efaSEM2.cont_summary$parameters
+```
 
+Modification indices show a similar pattern as the 1-factor model. 
+```{r, efaSEM2.cont.mi, message=FALSE,  error=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
 # model modification indices
 efaSEM2.cont_summary$mod_indices %>%
   kable(digits = 3, format="html", caption="Model modification indices for the 2-factor EFA ESEM") %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
 ```
+
+
+# Results
+In sum, several exploratory and confirmatory models were examined to see if a multidimensional specification of the science interest items was appropriate. Results generally showed that a 1-factor model best fit the data. However, these results also indicated that the 1-factor model still fit the data poorly. IRT analyses will need to be examined to weed out items that are likely degrading the measurement properties of the instrument. 
