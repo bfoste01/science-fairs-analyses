@@ -14,7 +14,7 @@ The following report outlines exploratory analyses to ascertain the dimensional 
 ## Import the data 
 Let's bring in the data for analyses, load the necessary packages, load any functions necessary for the analyses, and subset out the items so that they can be used in the subsequent analyses. Please note, that I have chosen to use all of the respondents to the survey, which was administered during the post-science fair exposure period. This is slightly different than the sample we will use to investigate outcomes. I do not expect the factor solutions would look that different if those few students who didn't participate in the science fair were removed from the analyses.
 
-```{r, import, message=FALSE, warning=FALSE, tidy=TRUE}
+```{r, import, message=FALSE,  error=FALSE, warning=FALSE, tidy=TRUE}
 # load packaes
 if (!require("pacman")) install.packages("pacman")
 pacman::p_load(MplusAutomation, psych, tidyr, foreign, ggplot2, ggalt, ggthemes, readr, dplyr, knitr, scales, pander, lavaan, kableExtra, GPArotation, nFactors, stringr)
@@ -46,7 +46,7 @@ items.stringr.prune <- items %>%
 # EFA: Run #1
 
 The following analyses uses an oblique rotation and a principal axis method for extraction. This will produce an [OLS solution which is not as sensitive to improper matrices as is the maximum likelihood method, and will sometimes produce more interpretable results](http://personality-project.org/r/psych/HowTo/factor.pdf). The following analysis utilizes a promax rotation, which is standard for correlated factors. 
-```{r, efa.1, message=FALSE, warning=FALSE, tidy=TRUE}
+```{r, efa.1, message=FALSE,  error=FALSE, warning=FALSE, tidy=TRUE}
 # run the EFA model for each numer of factors. 
 efa.2.5.promax <- lapply(2:5, function(x) {fa(items, nfactors=x, fm="pa", rotate = "promax", 
                                               max.iter = 500)})
@@ -54,7 +54,7 @@ efa.2.5.promax <- lapply(2:5, function(x) {fa(items, nfactors=x, fm="pa", rotate
 
 Next, the fit statistics for all four factor models are provided. An easy way to ascertain the best "fitting" model is to look for the model with the lowest BIC. The TLI and RMSEA values can then be used to examine how well that model fit the data. Results indicate that the 2-factor model exhibits the smallest BIC statistic, followed by the 5-factor solution. Of these two models, the 5-factor model shows the smallest fit statistics with RMSEA value = about .05, and TLI > .90. This result indicates that the patterns in the factor loadings for both should be examined. 
 
-```{r, efa.1.fit, message=FALSE, warning=FALSE, tidy=TRUE}
+```{r, efa.1.fit, message=FALSE,  error=FALSE, warning=FALSE, tidy=TRUE}
 tibble(
   "Number of Factors" = c(2, 3, 4, 5),
   "Tucker-Lewis Index (TLI)" = c(efa.2.5.promax[[1]]$TLI, efa.2.5.promax[[2]]$TLI,
@@ -78,7 +78,7 @@ tibble(
 ## 2-factor solution
 Now we will take a look at the details for the 2-factor solution. First, let's look at a factor diagram for the 2-factor solution. This can be an easy way to visualize the solution. 
 
-```{r, efa.1.2diag, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+```{r, efa.1.2diag, message=FALSE,  error=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
 fa.diagram(efa.2.5.promax[[1]], main="Factor diagram for the 2-factor solution")
 ```
 
@@ -86,7 +86,7 @@ From a substantive perspective, this solutions is quite intuitive. When inspecti
 
 The more specific information in the output provides additional insights.
 
-```{r, efa.1.2out, message=FALSE, warning=FALSE, tidy=TRUE}
+```{r, efa.1.2out, message=FALSE,  error=FALSE, warning=FALSE, tidy=TRUE}
 # print the 2-factor solution
 print(fa(items, nfactors=2, fm="pa", rotate = "promax", 
          max.iter = 500), digits=2, cut=.3, sort=TRUE)
@@ -119,13 +119,17 @@ Interpretation is the process of “naming factors” based on the indicators th
 Ø Note that significance tests of loadings are not usually given!!
 § Although can be obtained separately though other procedures or in Mplus
 
-However, there is a tradeoff, as setting a higher criteria for factor loadings might leave some factors ill-defined or completely undefined, while setting a lower criteria increases the likelihood that indicators load onto more than one factor. 
+However, there is a tradeoff, as setting a higher criteria for factor loadings might leave some factors ill-defined or completely undefined, while setting a lower criteria increases the likelihood that indicators load onto more than one factor.
+
+# ICM-CFA 
+
+The models that follow explore theoretical fit of models using confirmatory factor analyses. Based on theory, we might exepect that a three factor model best fits the data. However, the EFA analyses above indicate that a 2 factor model might be most appropriate. The code that follows will establish if either of these models fit the data or if additional modifications are needed to establish a better fit. 
 
 ## ICM-CFA approach 3-factor 
 
-The following analysis fits a traditional CFA model to the science interest items. The specifications of the model fit with theoretical conceptualizations of the measure, as it assess the fit of a model that contains factors for: desire to do science, career interest in science, and self-interest in science. Analyses are conducted in MPlus, whereby items are considered as continuous and the restiricted maximum likelihood estimation procedure is utilized. Code for the models are generated in R, and the MPlusAutomation package is used to compile code in MPlus. 
+The following analysis fits a traditional CFA model to the science interest items. The specifications of the model fit with theoretical conceptualizations of the measure, as it assess the fit of a model that contains factors for: desire to do science, career interest in science, and self-interest in science. Analyses are conducted in MPlus, whereby items are considered as continuous and the restricted maximum likelihood estimation procedure is utilized. Code for the models are generated in R, and the MPlusAutomation package is used to compile code in MPlus. 
 
-```{r, ICM_CFA_3.cont, message=FALSE, warning=FALSE, tidy=TRUE}
+```{r, ICM_CFA_3.cont, message=FALSE,  error=FALSE, warning=FALSE, tidy=TRUE}
 # construct the MPlus code for the model
 icm.cfaCont.3 <- mplusObject(
   TITLE = "Title: EFA of 3-factor solution using the ICM-CFA approach considering indicators 
@@ -169,9 +173,9 @@ icm.cfaCont.3_mplus <- mplusModeler(icm.cfaCont.3,
 icm.cfaCont.3_summary <- readModels("../mplus/06_Analayses_icm.cfaCont.3.out")
 ```
 
-In general, the model exhibits inadequate fit. The RMSEA value, and its associated 90% confidence intervals are above the .05 threshold, the CFI and TLI are below .90. The SRMR value falls within a model that exhiits acceptable fit with a value < .80. However, becasue the other values are not in line with an acceptable fitting model, we can not say the theoretical model fit the data. 
+In general, the model exhibits inadequate fit. The RMSEA value, and its associated 90% confidence intervals are above the .05 threshold, the CFI and TLI are below .90. The SRMR value falls within a model that exhibits acceptable fit with a value < .80. However, because the other values are not in line with an acceptable fitting model, we can not say the theoretical model fit the data. 
 
-```{r, ICM_CFA_3.cont.sum, message=FALSE, warning=FALSE, tidy=TRUE}
+```{r, ICM_CFA_3.cont.sum, message=FALSE,  error=FALSE, warning=FALSE, tidy=TRUE}
 # extract model summary statistics
 icm.cfaCont.3_summaryStats <- dplyr::select(icm.cfaCont.3_summary$summaries, CFI, TLI, RMSEA_Estimate, RMSEA_90CI_LB, RMSEA_90CI_UB, SRMR, AIC, AICC, BIC, aBIC, AICC) 
 
@@ -182,13 +186,13 @@ icm.cfaCont.3_summaryStats %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
 ```
 The table below provides the parameter estimates for the model. 
-```{r, ICM_CFA_3.cont.param, message=FALSE, warning=FALSE, tidy=TRUE}
+```{r, ICM_CFA_3.cont.param, message=FALSE,  error=FALSE, warning=FALSE, tidy=TRUE, results='markup'}
 # print model parameters
 icm.cfaCont.3_summary$parameters 
 ```
 
 Modification indices shows the presence of items that, if freed in the model, several items would load onto factors different than anticipated from the theoretically predicated model.  
-```{r, ICM_CFA_3.cont.mi, message=FALSE, warning=FALSE, tidy=TRUE}
+```{r, ICM_CFA_3.cont.mi, message=FALSE,  error=FALSE, warning=FALSE, tidy=TRUE}
 # print model modification indices
 icm.cfaCont.3_summary$mod_indices %>%
   filter(operator=="BY") %>%
@@ -199,9 +203,9 @@ icm.cfaCont.3_summary$mod_indices %>%
 
 ## ICM-CFA approach 2-factor 
 
-The following analysis fits a traditional CFA model to the science interest items. The specifications of the model fit with the results for a 2-factor structure that emerged from the EFA analyses with factors for: desire to do science/career interest in science and self-interest in science. Analyses are conducted in MPlus, whereby items are considered as continuous and the restiricted maximum likelihood estimation procedure is utilized. 
+The following analysis fits a traditional CFA model to the science interest items. The specifications of the model fit with the results for a 2-factor structure that emerged from the EFA analyses with factors for: desire to do science/career interest in science and self-interest in science. Analyses are conducted in MPlus, whereby items are considered as continuous and the restricted maximum likelihood estimation procedure is utilized. 
 
-```{r, ICM_CFA_2.cont, message=FALSE, warning=FALSE, tidy=TRUE}
+```{r, ICM_CFA_2.cont, message=FALSE,  error=FALSE, warning=FALSE, tidy=TRUE}
 # construct the MPlus code for the model
 icm.cfaCont.2 <- mplusObject(
   TITLE = "Title: EFA of 2-factor solution using the ICM-CFA approach considering indicators 
@@ -245,9 +249,9 @@ icm.cfaCont.2_mplus <- mplusModeler(icm.cfaCont.2,
 icm.cfaCont.2_summary <- readModels("../mplus/06_Analayses_icm.cfaCont.2.out")
 ```
 
-In general, the model exhibits inadequate fit. The RMSEA value, and its associated 90% confidence intervals are above the .05 threshold, the CFI and TLI are below .90. The SRMR value falls within a model that exhiits acceptable fit with a value < .80. However, becasue the other values are not in line with an acceptable fitting model, we can not say the theoretical model fit the data. 
+In general, the model exhibits inadequate fit. The RMSEA value, and its associated 90% confidence intervals are above the .05 threshold, the CFI and TLI are below .90. The SRMR value falls within a model that exhibits acceptable fit with a value < .80. However, because the other values are not in line with an acceptable fitting model, we can not say the theoretical model fit the data. 
 
-```{r, ICM_CFA_2.cont.sum, message=FALSE, warning=FALSE, tidy=TRUE}
+```{r, ICM_CFA_2.cont.sum, message=FALSE,  error=FALSE, warning=FALSE, tidy=TRUE}
 # extract model summary statistics
 icm.cfaCont.2_summaryStats <- dplyr::select(icm.cfaCont.2_summary$summaries, CFI, TLI, RMSEA_Estimate, RMSEA_90CI_LB, RMSEA_90CI_UB, SRMR, AIC, AICC, BIC, aBIC, AICC) 
 
@@ -258,14 +262,14 @@ icm.cfaCont.2_summaryStats %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
 ```
 The table below provides the parameter estimates for the model. 
-```{r, ICM_CFA_2.cont.param, message=FALSE, warning=FALSE, tidy=TRUE}
+```{r, ICM_CFA_2.cont.param, message=FALSE,  error=FALSE, warning=FALSE, tidy=TRUE}
 # print model parameters
 icm.cfaCont.2_summary$parameters 
 ```
 
 Again, modification indices show factors pulling on items that we would not expect are associated with the factors. Clearly, there is something within these items that are associated with other factors. Ignoring these cross-loadings in a model would lead to mispecification of the model. Enter the EFA ESEM models, next. 
 
-```{r, ICM_CFA_2.cont.mi, message=FALSE, warning=FALSE, tidy=TRUE}
+```{r, ICM_CFA_2.cont.mi, message=FALSE,  error=FALSE, warning=FALSE, tidy=TRUE}
 # print model modification indices
 icm.cfaCont.2_summary$mod_indices %>%
   filter(operator=="BY") %>%
@@ -276,14 +280,14 @@ icm.cfaCont.2_summary$mod_indices %>%
 
 # EFA ESEM
 
-Why pursue an EFA within an exploratory structural equation modeling framework? First, ESEM provides an overarching framework allowing for the combination of CFA, EFA, and SEM into a single model. ESEM thus incorporates the benefits from each technique into a single analytic framework. In moving from an EFA to CFA model, a major assumption that we make about our indicators is that they load independently onto only 1 factor. Indicators that cross-load onto other factors are generally frowned upon. Estimates of model fit, as well as correlations between factors can be over estimated using the traditional approach of moving from an EFA to a CFA solution. As such, historically, within applied circles, the inclusion of cross-loading indicators into a model substanatively changes the meaning of the factors. 
+Why pursue an EFA within an exploratory structural equation modeling framework? First, ESEM provides an overarching framework allowing for the combination of CFA, EFA, and SEM into a single model. ESEM thus incorporates the benefits from each technique into a single analytic framework. In moving from an EFA to CFA model, a major assumption that we make about our indicators is that they load independently onto only 1 factor. Indicators that cross-load onto other factors are generally frowned upon. Estimates of model fit, as well as correlations between factors can be over estimated using the traditional approach of moving from an EFA to a CFA solution. As such, historically, within applied circles, the inclusion of cross-loading indicators into a model substantively changes the meaning of the factors. 
 
 A perhaps more critical issue is whether the factor itself is adequately captured, from a psychometric perspective, as being primarily reflected in its a priori indicators. Indeed, whenever results show large and hard to explain cross-loadings suggesting that some specific factors are mainly reflected in unexpected items rather than in their a priori items, then alternatives models should be explored.
  
 Forcing cross-loadings to be exactly zero involves ignoring some potentially true influence of a factor on indicators presenting some residual association with these factors over and above their association with their main a priori factor.
 
 ESEM EFA 2-factor
-```{r, efaSEM2.cont, message=FALSE, warning=FALSE, tidy=TRUE}
+```{r, efaSEM2.cont, message=FALSE,  error=FALSE, warning=FALSE, tidy=TRUE}
 # construct the MPlus code for the model
 efa.esem.2.obj.cont <- mplusObject(
   TITLE = "Title: EFA of 2-factor solution using ESEM considering indicators as continuous;",
