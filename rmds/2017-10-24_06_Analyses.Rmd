@@ -329,7 +329,7 @@ efaSEM1.cont_summaryStats
 ```
 
 Let's look at the parameter estimates for the model: 
-```{r, efaSEM1.cont.param, message=FALSE,  error=FALSE, warning=FALSE, tidy=TRUE, results = 'asis'}
+```{r, efaSEM1.cont.param, message=FALSE,  error=FALSE, warning=FALSE, tidy=TRUE}
 # model parameters
 efaSEM1.cont_summary$parameters 
 ```
@@ -396,7 +396,7 @@ efaSEM2.cont_summaryStats
 ```
 
 Model parameters are interesting, as the magnitude of factor loadings show that the self-concept items hang together well, and the desire/career interest in science items seem to hold together as one factor too. Most of the items that cross load are small in magnitude. However, a 1-factor model, while poorly fitting, still fit better than this model. It would be interesting to see if the items that load strongly onto the respective factors are the same items that the 1-factor model showed as residual correlations. 
-```{r, efaSEM2.cont.param, message=FALSE,  error=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+```{r, efaSEM2.cont.param, message=FALSE,  error=FALSE, warning=FALSE, tidy=TRUE}
 # model parameters
 efaSEM2.cont_summary$parameters
 ```
