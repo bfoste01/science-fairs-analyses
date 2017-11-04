@@ -1,0 +1,42 @@
+TITLE:
+Title: EFA of 2-factor solution using the ICM-CFA approach considering indicators 
+  as continuous;
+DATA:
+FILE = "../data/06_Analayses_icm.cfaCont.2.csv";
+ 
+VARIABLE:
+NAMES = Des_15 Des_17 Des_21 Des_24 Des_26 Des_29 Des_33 Car_16 Car_18 Car_20 Car_23
+     Car_25 Car_28 Car_30 Car_32 Car_34 Car_36 Self_19 Self_22 Self_27 Self_31
+     Self_35; 
+ MISSING=.;
+ 
+  Missing are all (-99, -9, -8, -1);,
+  USEVARIABLES =    Des_15  Des_17  Des_21  
+                    Des_24 Des_26  Des_29  
+                    Des_33  Car_16 Car_18  
+                    Car_20  Car_23  Car_25 
+                    Car_28  Car_30  Car_32  
+                    Car_34 Car_36  Self_19 
+                    Self_22 Self_27 Self_31 
+                    Self_35;
+ANALYSIS:
+
+  ITERATIONS = 10000;
+  ESTIMATOR = MLR;
+  ! MLR = maximum likelihood estimation with robust standard errors is used
+MODEL:
+
+  DESCAREER BY Des_15  Des_17  Des_21  Des_24 Des_26  Des_29  Des_33
+  Car_16 Car_18  Car_20  Car_23  Car_25 Car_28  Car_30
+  Car_32  Car_34 Car_36;  
+  SELF BY Self_19 Self_22 Self_27
+  Self_31 Self_35;
+  ! ICM-CFA models for the latent variables in the analysis
+  ! (measurement component of the model)
+OUTPUT:
+STDYX CINTERVAL MODINDICES(3.8);
+  ! STDYX standardizes parameters with the variances of the continuous latent variables and 
+  ! the variances of the background and outcome variables
+  ! CINTERVAL option is used to request confidence intervals for parameter estimates
+  ! wherein SYMMETRIC intervals is the default for frequentist estimation (such as MLR),
+  ! producing 90%, 95% and 99% symmetric confidence intervals by default in program output

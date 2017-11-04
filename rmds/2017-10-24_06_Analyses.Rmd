@@ -17,7 +17,7 @@ Let's bring in the data for analyses, load the necessary packages, load any func
 ```{r, import, message=FALSE, warning=FALSE, tidy=TRUE}
 # load packaes
 if (!require("pacman")) install.packages("pacman")
-pacman::p_load(MplusAutomation, psych, tidyr, foreign, ggplot2, ggalt, ggthemes, readr, dplyr, knitr, scales, pander, lavaan, kableExtra, GPArotation)
+pacman::p_load(MplusAutomation, psych, tidyr, foreign, ggplot2, ggalt, ggthemes, readr, dplyr, knitr, scales, pander, lavaan, kableExtra, GPArotation, nFactors, stringr)
 
 # Import the data ----
 joined.dat <- readRDS(file = "../data/joined.dat")
@@ -32,11 +32,15 @@ panderOptions('keep.trailing.zeros', TRUE)
 
 # Munge data ----
 items <- joined.dat %>%
-  select(s_preInt_Des_15, s_preInt_Des_17, s_preInt_Des_21, s_preInt_Des_24, s_preInt_Des_26, 
+  dplyr::select(s_preInt_Des_15, s_preInt_Des_17, s_preInt_Des_21, s_preInt_Des_24, s_preInt_Des_26, 
          s_preInt_Des_29, s_preInt_Des_33, s_preInt_Car_16, s_preInt_Car_18, s_preInt_Car_20, 
          s_preInt_Car_23, s_preInt_Car_25, s_preInt_Car_28, s_preInt_Car_30, s_preInt_Car_32, 
          s_preInt_Car_34, s_preInt_Car_36, s_preInt_Self_19, s_preInt_Self_22, 
          s_preInt_Self_27, s_preInt_Self_31 ,s_preInt_Self_35)
+
+# munge the variable names to remove pre_ and post_ prefixes
+items.stringr.prune <- items %>% 
+  rename_(.dots=setNames(names(.), gsub("s_preInt_", "", names(.))))
 ```
 
 # EFA: Run #1
@@ -83,5 +87,248 @@ From a substantive perspective, this solutions is quite intuitive. When inspecti
 The more specific information in the output provides additional insights.
 
 ```{r, efa.1.2out, message=FALSE, warning=FALSE, tidy=TRUE}
-efa.2.5.promax[[1]]
+# print the 2-factor solution
+print(fa(items, nfactors=2, fm="pa", rotate = "promax", 
+         max.iter = 500), digits=2, cut=.3, sort=TRUE)
+
+# print a plot with scree and parallel tests
+ev <- eigen(cor(items, use="complete.obs")) # get eigenvalues
+ap <- parallel(subject=nrow(items),var=ncol(items),
+  rep=100,cent=.05)
+nS <- nScree(x=ev$values, aparallel=ap$eigen$qevpea)
+plotnScree(nS)
+```
+
+EFA: What is the structure of the latent factors that produced the covariances among the observed indicators (factor = predictor)?
+
+
+Rotations
+The idea of rotation is to redefine the factor loadings to obtain simple structure
+Ø Each factor should have indicators with strong loadings § Obvious which indicators measure it (+/-) and which don’t
+Ø Each indicator should load strongly on only one factor
+§ Know what each item is ‘for’
+§ Construct measured is readily identifiable
+§ Indicators should have large communalities
+
+Promax rotation:
+Computes best orthogonal solution and then “relaxes” orthogonality constraints to better “spear” indicator clusters with factor vectors (give simpler structure)
+
+### Interpreting the solution
+Interpretation is the process of “naming factors” based on the indicators that “load on” them. Which indicators “load” is decided based on a “cutoff”
+Ø Cutoffs usually range from .3 to .4 ( +/- )
+Ø Note that significance tests of loadings are not usually given!!
+§ Although can be obtained separately though other procedures or in Mplus
+
+However, there is a tradeoff, as setting a higher criteria for factor loadings might leave some factors ill-defined or completely undefined, while setting a lower criteria increases the likelihood that indicators load onto more than one factor. 
+
+## ICM-CFA approach 3-factor 
+
+The following analysis fits a traditional CFA model to the science interest items. The specifications of the model fit with theoretical conceptualizations of the measure, as it assess the fit of a model that contains factors for: desire to do science, career interest in science, and self-interest in science. Analyses are conducted in MPlus, whereby items are considered as continuous and the restiricted maximum likelihood estimation procedure is utilized. Code for the models are generated in R, and the MPlusAutomation package is used to compile code in MPlus. 
+
+```{r, ICM_CFA_3.cont, message=FALSE, warning=FALSE, tidy=TRUE}
+# construct the MPlus code for the model
+icm.cfaCont.3 <- mplusObject(
+  TITLE = "Title: EFA of 3-factor solution using the ICM-CFA approach considering indicators 
+  as continuous;",
+  VARIABLE = "
+  Missing are all (-99, -9, -8, -1);,
+  USEVARIABLES =    Des_15  Des_17  Des_21  
+                    Des_24 Des_26  Des_29  
+                    Des_33  Car_16 Car_18  
+                    Car_20  Car_23  Car_25 
+                    Car_28  Car_30  Car_32  
+                    Car_34 Car_36  Self_19 
+                    Self_22 Self_27 Self_31 
+                    Self_35;",
+  ANALYSIS = "
+  ITERATIONS = 10000;
+  ESTIMATOR = MLR;
+  ! MLR = maximum likelihood estimation with robust standard errors is used",
+  MODEL = "
+  DES BY Des_15  Des_17  Des_21  Des_24 Des_26  Des_29  Des_33;  
+  CAREER BY Car_16 Car_18  Car_20  Car_23  Car_25 Car_28  Car_30
+  Car_32  Car_34 Car_36;  
+  SELF BY Self_19 Self_22 Self_27
+  Self_31 Self_35;
+  ! ICM-CFA models for the latent variables in the analysis
+  ! (measurement component of the model)",
+  OUTPUT = "STDYX CINTERVAL MODINDICES(3.8);
+  ! STDYX standardizes parameters with the variances of the continuous latent variables and 
+  ! the variances of the background and outcome variables
+  ! CINTERVAL option is used to request confidence intervals for parameter estimates
+  ! wherein SYMMETRIC intervals is the default for frequentist estimation (such as MLR),
+  ! producing 90%, 95% and 99% symmetric confidence intervals by default in program output",
+rdata = items.stringr.prune)
+
+# compile the code and send to mplus to run the model
+icm.cfaCont.3_mplus <- mplusModeler(icm.cfaCont.3,
+  dataout = c("../data/06_Analayses_icm.cfaCont.3.csv"),
+  modelout = c("../mplus/06_Analayses_icm.cfaCont.3.inp"), run=TRUE)
+
+# extract model summaries
+icm.cfaCont.3_summary <- readModels("../mplus/06_Analayses_icm.cfaCont.3.out")
+```
+
+In general, the model exhibits inadequate fit. The RMSEA value, and its associated 90% confidence intervals are above the .05 threshold, the CFI and TLI are below .90. The SRMR value falls within a model that exhiits acceptable fit with a value < .80. However, becasue the other values are not in line with an acceptable fitting model, we can not say the theoretical model fit the data. 
+
+```{r, ICM_CFA_3.cont.sum, message=FALSE, warning=FALSE, tidy=TRUE}
+# extract model summary statistics
+icm.cfaCont.3_summaryStats <- dplyr::select(icm.cfaCont.3_summary$summaries, CFI, TLI, RMSEA_Estimate, RMSEA_90CI_LB, RMSEA_90CI_UB, SRMR, AIC, AICC, BIC, aBIC, AICC) 
+
+# print table for the summary statistics
+icm.cfaCont.3_summaryStats %>%
+  kable(digits = 3, format="html", caption="Model fit statistics for the 3-factor ICM-CFA 
+        model with contintuous indicators") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+```
+The table below provides the parameter estimates for the model. 
+```{r, ICM_CFA_3.cont.param, message=FALSE, warning=FALSE, tidy=TRUE}
+# print model parameters
+icm.cfaCont.3_summary$parameters 
+```
+
+Modification indices shows the presence of items that, if freed in the model, several items would load onto factors different than anticipated from the theoretically predicated model.  
+```{r, ICM_CFA_3.cont.mi, message=FALSE, warning=FALSE, tidy=TRUE}
+# print model modification indices
+icm.cfaCont.3_summary$mod_indices %>%
+  filter(operator=="BY") %>%
+  kable(digits = 3, format="html", caption="Model modification indices for the 3-factor 
+        ICM-CFA model with contintuous indicators") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+```
+
+## ICM-CFA approach 2-factor 
+
+The following analysis fits a traditional CFA model to the science interest items. The specifications of the model fit with the results for a 2-factor structure that emerged from the EFA analyses with factors for: desire to do science/career interest in science and self-interest in science. Analyses are conducted in MPlus, whereby items are considered as continuous and the restiricted maximum likelihood estimation procedure is utilized. 
+
+```{r, ICM_CFA_2.cont, message=FALSE, warning=FALSE, tidy=TRUE}
+# construct the MPlus code for the model
+icm.cfaCont.2 <- mplusObject(
+  TITLE = "Title: EFA of 2-factor solution using the ICM-CFA approach considering indicators 
+  as continuous;",
+  VARIABLE = "
+  Missing are all (-99, -9, -8, -1);,
+  USEVARIABLES =    Des_15  Des_17  Des_21  
+                    Des_24 Des_26  Des_29  
+                    Des_33  Car_16 Car_18  
+                    Car_20  Car_23  Car_25 
+                    Car_28  Car_30  Car_32  
+                    Car_34 Car_36  Self_19 
+                    Self_22 Self_27 Self_31 
+                    Self_35;",
+  ANALYSIS = "
+  ITERATIONS = 10000;
+  ESTIMATOR = MLR;
+  ! MLR = maximum likelihood estimation with robust standard errors is used",
+  MODEL = "
+  DESCAREER BY Des_15  Des_17  Des_21  Des_24 Des_26  Des_29  Des_33
+  Car_16 Car_18  Car_20  Car_23  Car_25 Car_28  Car_30
+  Car_32  Car_34 Car_36;  
+  SELF BY Self_19 Self_22 Self_27
+  Self_31 Self_35;
+  ! ICM-CFA models for the latent variables in the analysis
+  ! (measurement component of the model)",
+  OUTPUT = "STDYX CINTERVAL MODINDICES(3.8);
+  ! STDYX standardizes parameters with the variances of the continuous latent variables and 
+  ! the variances of the background and outcome variables
+  ! CINTERVAL option is used to request confidence intervals for parameter estimates
+  ! wherein SYMMETRIC intervals is the default for frequentist estimation (such as MLR),
+  ! producing 90%, 95% and 99% symmetric confidence intervals by default in program output",
+rdata = items.stringr.prune)
+
+# compile the code and send to mplus to run the model
+icm.cfaCont.2_mplus <- mplusModeler(icm.cfaCont.2,
+  dataout = c("../data/06_Analayses_icm.cfaCont.2.csv"),
+  modelout = c("../mplus/06_Analayses_icm.cfaCont.2.inp"), run=TRUE)
+
+# extract model summaries
+icm.cfaCont.2_summary <- readModels("../mplus/06_Analayses_icm.cfaCont.2.out")
+```
+
+In general, the model exhibits inadequate fit. The RMSEA value, and its associated 90% confidence intervals are above the .05 threshold, the CFI and TLI are below .90. The SRMR value falls within a model that exhiits acceptable fit with a value < .80. However, becasue the other values are not in line with an acceptable fitting model, we can not say the theoretical model fit the data. 
+
+```{r, ICM_CFA_2.cont.sum, message=FALSE, warning=FALSE, tidy=TRUE}
+# extract model summary statistics
+icm.cfaCont.2_summaryStats <- dplyr::select(icm.cfaCont.2_summary$summaries, CFI, TLI, RMSEA_Estimate, RMSEA_90CI_LB, RMSEA_90CI_UB, SRMR, AIC, AICC, BIC, aBIC, AICC) 
+
+# print table for the summary statistics
+icm.cfaCont.2_summaryStats %>%
+  kable(digits = 3, format="html", caption="Model fit statistics for the 3-factor ICM-CFA 
+        model with contintuous indicators") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+```
+The table below provides the parameter estimates for the model. 
+```{r, ICM_CFA_2.cont.param, message=FALSE, warning=FALSE, tidy=TRUE}
+# print model parameters
+icm.cfaCont.2_summary$parameters 
+```
+
+Again, modification indices show factors pulling on items that we would not expect are associated with the factors. Clearly, there is something within these items that are associated with other factors. Ignoring these cross-loadings in a model would lead to mispecification of the model. Enter the EFA ESEM models, next. 
+
+```{r, ICM_CFA_2.cont.mi, message=FALSE, warning=FALSE, tidy=TRUE}
+# print model modification indices
+icm.cfaCont.2_summary$mod_indices %>%
+  filter(operator=="BY") %>%
+  kable(digits = 3, format="html", caption="Model modification indices for the 3-factor 
+        ICM-CFA model with contintuous indicators") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+```
+
+# EFA ESEM
+
+Why pursue an EFA within an exploratory structural equation modeling framework? First, ESEM provides an overarching framework allowing for the combination of CFA, EFA, and SEM into a single model. ESEM thus incorporates the benefits from each technique into a single analytic framework. In moving from an EFA to CFA model, a major assumption that we make about our indicators is that they load independently onto only 1 factor. Indicators that cross-load onto other factors are generally frowned upon. Estimates of model fit, as well as correlations between factors can be over estimated using the traditional approach of moving from an EFA to a CFA solution. As such, historically, within applied circles, the inclusion of cross-loading indicators into a model substanatively changes the meaning of the factors. 
+
+A perhaps more critical issue is whether the factor itself is adequately captured, from a psychometric perspective, as being primarily reflected in its a priori indicators. Indeed, whenever results show large and hard to explain cross-loadings suggesting that some specific factors are mainly reflected in unexpected items rather than in their a priori items, then alternatives models should be explored.
+ 
+Forcing cross-loadings to be exactly zero involves ignoring some potentially true influence of a factor on indicators presenting some residual association with these factors over and above their association with their main a priori factor.
+
+ESEM EFA 2-factor
+```{r, efaSEM2.cont, message=FALSE, warning=FALSE, tidy=TRUE}
+# construct the MPlus code for the model
+efa.esem.2.obj.cont <- mplusObject(
+  TITLE = "Title: EFA of 2-factor solution using ESEM considering indicators as continuous;",
+  VARIABLE = "
+  Missing are all (-99, -9, -8, -1);,
+  USEVARIABLES =    Des_15  Des_17  Des_21  
+                    Des_24 Des_26  Des_29  
+                    Des_33  Car_16 Car_18  
+                    Car_20  Car_23  Car_25 
+                    Car_28  Car_30  Car_32  
+                    Car_34 Car_36  Self_19 
+                    Self_22 Self_27 Self_31 
+                    Self_35;",
+  ANALYSIS = "
+  ITERATIONS = 10000;
+  ESTIMATOR = MLR;",
+  MODEL = "
+  f1-f2 BY Des_15  Des_17  Des_21  Des_24 
+  Des_26  Des_29  Des_33  Car_16
+  Car_18  Car_20  Car_23  Car_25
+  Car_28  Car_30  Car_32  Car_34 
+  Car_36  Self_19 Self_22 Self_27
+  Self_31 Self_35 (*1);",
+  OUTPUT = "SAMPSTAT MODINDICES(3.8) STANDARDIZED tech1;",
+rdata = items.stringr.prune)
+
+# examine the mplus model syntax
+#str(pathmodel, max.level = 1, nchar.max = 30)
+
+# compile the code and send to mplus to run the model
+efaSEM2.cont_mplus <- mplusModeler(efa.esem.2.obj.cont,
+  dataout = c("../data/06_Analayses_EfaSEMCont.2.csv"),
+  modelout = c("../mplus/06_Analayses_EfaSEMCont.2.inp"), run=TRUE)
+
+# extract model summaries
+efaSEM2.cont_summary <- readModels("../mplus/06_Analayses_EfaSEMCont.2.out")
+
+# extract model summary statistics
+efaSEM2.cont_summaryStats <- dplyr::select(efaSEM2.cont_summary$summaries, CFI, TLI, RMSEA_Estimate, RMSEA_90CI_LB, RMSEA_90CI_UB, SRMR, AIC, AICC, BIC, aBIC, AICC) 
+
+# model parameters
+efaSEM2.cont_summary$parameters 
+
+# model modification indices
+efaSEM2.cont_summary$mod_indices %>%
+  kable(digits = 3, format="html", caption="Model modification indices for the 2-factor EFA ESEM") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
 ```

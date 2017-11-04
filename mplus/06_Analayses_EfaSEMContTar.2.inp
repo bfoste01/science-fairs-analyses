@@ -1,0 +1,32 @@
+TITLE:
+Title: EFA of 2-factor solution using ESEM considering indicators as continuous;
+DATA:
+FILE = "../data/06_Analayses_EfaSEMContTar.2.csv";
+ 
+VARIABLE:
+NAMES = Des_15 Des_17 Des_21 Des_24 Des_26 Des_29 Des_33 Car_16 Car_18 Car_20 Car_23
+     Car_25 Car_28 Car_30 Car_32 Car_34 Car_36 Self_19 Self_22 Self_27 Self_31
+     Self_35; 
+ MISSING=.;
+ 
+  Missing are all (-99, -9, -8, -1);,
+  USEVARIABLES =    Des_15  Des_17  Des_21  
+                    Des_24 Des_26  Des_29  
+                    Des_33  Car_16 Car_18  
+                    Car_20  Car_23  Car_25 
+                    Car_28  Car_30  Car_32  
+                    Car_34 Car_36  Self_19 
+                    Self_22 Self_27 Self_31 
+                    Self_35;
+ANALYSIS:
+ ROTATION = TARGET;
+MODEL:
+
+  f1-f2 BY Des_15  Des_17  Des_21  Des_24 
+  Des_26  Des_29  Des_33  Car_16
+  Car_18  Car_20  Car_23  Car_25
+  Car_28  Car_30  Car_32  Car_34 
+  Car_36  Self_19 Self_22 Self_27
+  Self_31 Self_35 (*1);
+OUTPUT:
+SAMPSTAT MODINDICES(3.8) STANDARDIZED tech1;
