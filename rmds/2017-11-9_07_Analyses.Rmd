@@ -1,0 +1,367 @@
+---
+title: "Graded Response Model Science Interest Measure"
+author: "Brandon Foster, Ph.D."
+date: "`r format(Sys.time(), '%d %B, %Y, %H:%M')`"
+output:
+  html_document:
+    simplex
+  html_notebook: null
+---
+
+# Introduction
+Introduce GSM model
+IRT is a type of measurement model in which transformed item responses are predicted using properties of persons (Theta) and properties of items (difficulty, discrimination)
+## Import the data 
+Outcome categories are ordered (scoring rubrics, “Likert” scales)  Graded Response or Modified Graded Response Model
+Likert‐type questionnaires are commonly scored using ordered categorical values
+
+The GSM is ideal for: 
+
+- items with clear underlying response continuum
+
+-  # response options (k) don’t have to be the same across items
+
+Models the probability of any given response category or higher (i.e., “cumulative logit model”)
+Like dividing 4‐category items into a series of binary items...
+0 vs. 1,2,3 | 0, 1 vs. 2,3, | 0, 1, 2 vs. 3 |
+Note ai is the same across thresholds :: only one slope per item
+bik = trait level needed to have a 50% probability of responding in that category or higher
+
+## Model preparation
+Let's bring the data into the system for analyses and load the packages necessary for analyses.  
+```{r, import, message=FALSE, warning=FALSE, tidy=TRUE}
+# Set working directory ----
+setwd("/Users/bfoster/Desktop/2017-edc/science-fairs-analyses")
+# Load packaes ----
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(MplusAutomation, psych, tidyr, foreign, ggplot2, ggalt, ggthemes, 
+    readr, dplyr, knitr, scales, pander, lavaan, kableExtra, rhdf5, stringr, scales)
+
+# Import the data ----
+joined.dat <- readRDS(file = "../data/joined.dat")
+
+# Load the custom functions ----
+source("../functions/functions.r")
+
+# Document options ----
+panderOptions('digits', 2)
+panderOptions('round', 2)
+panderOptions('keep.trailing.zeros', TRUE)
+
+# Munge data ----
+colnames(joined.dat)
+items <- joined.dat %>%
+  dplyr::select(StudentID, s_preInt_Des_15, s_preInt_Des_17, s_preInt_Des_21, s_preInt_Des_24, 
+                s_preInt_Des_26, s_preInt_Des_29, s_preInt_Des_33, s_preInt_Car_16, s_preInt_Car_18, s_preInt_Car_20,
+                s_preInt_Car_23, s_preInt_Car_25, s_preInt_Car_28, s_preInt_Car_30, s_preInt_Car_32, 
+                s_preInt_Car_34, s_preInt_Car_36, s_preInt_Self_19, s_preInt_Self_22, 
+                s_preInt_Self_27, s_preInt_Self_31 ,s_preInt_Self_35)
+
+# munge the variable names to remove pre_ and post_ prefixes
+items.stringr.prune <- items %>% 
+  rename_(.dots=setNames(names(.), gsub("s_preInt_", "", names(.))))
+items.stringr.prune <- items.stringr.prune %>%
+    mutate(
+      Des_15 = Des_15 - 1, 
+      Des_17 = Des_17 - 1,
+      Des_21 = Des_21 - 1,
+      Des_24 = Des_24 - 1, 
+      Des_26 = Des_26 - 1,
+      Des_29 = Des_29 - 1,
+      Des_33 = Des_33 - 1,
+      Car_16 = Car_16 - 1,
+      Car_18 = Car_18 - 1,
+      Car_20 = Car_20 - 1,
+      Car_23 = Car_23 - 1,
+      Car_25 = Car_25 - 1,
+      Car_28 = Car_28 - 1,
+      Car_30 = Car_30 - 1,
+      Car_32 = Car_32 - 1, 
+      Car_34 = Car_34 - 1,
+      Car_36 = Car_36 - 1,
+      Self_19 = Self_19 - 1,
+      Self_22 = Self_22 - 1, 
+      Self_27 = Self_27 - 1,
+      Self_31 = Self_31 - 1,
+      Self_35 = Self_35 - 1)
+```
+
+# Construct the 1-PL model
+
+The code below constructs the model in MPlus model syntax language. A few things to note in the code are: 1) all thresholds are estimates, 2) Factor loadings all constrained equal, 3) the factor variance is set to 1 for the purpose of identification. Note that because the factor loadings for the items are constrained to be equal, this model is a 1-parameter model.   
+
+```{r, mplus_1pl, message=FALSE, warning=FALSE}
+# construct the MPlus code for the model
+gsm.1pl <- mplusObject(
+  TITLE = "Title: 1PL GSM;",
+  VARIABLE = "
+  Missing are all (-99, -9, -8, -1);,
+  USEVARIABLES =    Des_15  Des_17  Des_21  
+                    Des_24 Des_26  Des_29  
+                    Des_33  Car_16 Car_18  
+                    Car_20  Car_23  Car_25 
+                    Car_28  Car_30  Car_32  
+                    Car_34 Car_36  Self_19 
+                    Self_22 Self_27 Self_31 
+                    Self_35;
+  CATEGORICAL ARE  Des_15  Des_17  Des_21  
+                    Des_24 Des_26  Des_29  
+                    Des_33  Car_16 Car_18  
+                    Car_20  Car_23  Car_25 
+                    Car_28  Car_30  Car_32  
+                    Car_34 Car_36  Self_19 
+                    Self_22 Self_27 Self_31 
+                    Self_35;",
+  ANALYSIS = "
+  LINK IS LOGIT;
+  ESTIMATOR = ML;
+  PROCESSORS = 5",
+  MODEL = "
+  THETA BY 
+  Des_15* (1) 
+  Des_17 (1)  
+  Des_21 (1)  
+  Des_24 (1) 
+  Des_26 (1)  
+  Des_29 (1)  
+  Des_33 (1)  
+  Car_16 (1) 
+  Car_18 (1)  
+  Car_20 (1)  
+  Car_23 (1) 
+  Car_25 (1) 
+  Car_28 (1)  
+  Car_30 (1)  
+  Car_32 (1)  
+  Car_34 (1) 
+  Car_36 (1)  
+  Self_19 (1) 
+  Self_22 (1) 
+  Self_27 (1) 
+  Self_31 (1) 
+  Self_35 (1);
+
+  ! Item thresholds all estimated
+  [Des_15$1*  Des_17$1*  Des_21$1*  Des_24$1*
+  Des_26$1*  Des_29$1*  Des_33$1*  Car_16$1*
+  Car_18$1*  Car_20$1*  Car_23$1*  Car_25$1*
+  Car_28$1*  Car_30$1*  Car_32$1*  Car_34$1*
+  Car_36$1*  Self_19$1* Self_22$1* Self_27$1*
+  Self_31$1* Self_35$1*];
+
+  [Des_15$2*  Des_17$2*  Des_21$2*  Des_24$2*
+  Des_26$2*  Des_29$2*  Des_33$2*  Car_16$2*
+  Car_18$2*  Car_20$2*  Car_23$2*  Car_25$2*
+  Car_28$2*  Car_30$2*  Car_32$2*  Car_34$2*
+  Car_36$2*  Self_19$2* Self_22$2* Self_27$2*
+  Self_31$2* Self_35$2*];
+
+  [Des_15$3*  Des_17$3*  Des_21$3*  Des_24$3*
+  Des_26$3*  Des_29$3*  Des_33$3*  Car_16$3*
+  Car_18$3*  Car_20$3*  Car_23$3*  Car_25$3*
+  Car_28$3*  Car_30$3*  Car_32$3*  Car_34$3*
+  Car_36$3*  Self_19$3* Self_22$3* Self_27$3*
+  Self_31$3* Self_35$3*];
+
+  [Des_15$4*  Des_17$4*  Des_21$4*  Des_24$4*
+  Des_26$4*  Des_29$4*  Des_33$4*  Car_16$4*
+  Car_18$4*  Car_20$4*  Car_23$4*  Car_25$4*
+  Car_28$4*  Car_30$4*  Car_32$4*  Car_34$4*
+  Car_36$4*  Self_19$4* Self_22$4* Self_27$4*
+  Self_31$4* Self_35$4*];
+  ! Factor mean=0 and variance=1 for identification
+  [THETA@0]; THETA@1;",
+  OUTPUT = "STDYX RESIDUAL TECH1 TECH5 TECH8 TECH10;",
+  SAVEDATA = "
+  file is gsm.1pl.dat;
+  save = fscores;
+  PLOT: TYPE IS PLOT1;
+        TYPE IS PLOT2;
+        TYPE IS PLOT3;",
+  rdata = items.stringr.prune)
+
+# compile the code and send to mplus to run the model
+gsm.1pl_mplus <- mplusModeler(gsm.1pl,
+  dataout = c("../data/06_Analayses_1pl.csv"),
+  modelout = c("../mplus/06_Analayses_gsm.1pl.inp"), run=TRUE)
+
+# extract model summaries
+gsm.1pl_summary <- readModels("/Users/bfoster/Desktop/2017-edc/science-fairs-analyses/mplus/06_Analayses_gsm.1pl.out")
+```
+
+## Examine the output 
+
+Let's first take a look at the proportion of respondents using each category of the rating scale. The plot shows that most students used the upper categories of the rating scale. Notable exceptions were the items CAR_28, CAR_30, and CAR_31, which students seem to endorse with the lower categories of the rating scale. 
+
+```{r, proportion_1pl, message=FALSE, warning=FALSE, results='asis'}
+# extract proportions and counts
+pl1_prop <- gsm.1pl_summary$sampstat$proportions.counts
+pl1_prop$category <- as.factor(pl1_prop$category)
+
+# plot the proportions
+p_pl1_prop <- ggplot() + geom_bar(aes(y = proportion, x = variable, fill = category), 
+                                  data = pl1_prop, stat="identity") +
+  ggtitle("Proportion of Category Utilization") + 
+  scale_fill_ptol() + theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) 
+p_pl1_prop
+```
+
+Now let's examine the unvariate model fit statistics for the model predicted vs. actual responses to each category for each item. For this we will need to look in the "../mplus/" directory for the project, identify the script titled '06_Analayses_gsm.1pl.out,' and scroll to the section which reads "UNIVARIATE MODEL FIT INFORMATION." These statistics compare the model predicted and observed frequencies of responses for all categories for each item. As such, these statistics attempt to determine if the model fits each item marginally. The Chi‐Square critical values are (p = 0.05) = 3.84, and (p = 0.01) = 6.63. Looking across all items, none had none had p‐values less than 0.01. Next, the bivariate model fit information was examined using the same criteria described above. The bivariate model fit information compares model predicted and observed frequencies of responses for all
+categories and pairs of items. 
+```{r, univarFit_1pl, message=FALSE, warning=FALSE, results='asis'}
+gsm.1pl_summary$gh5$irt_data$univariate_table
+```
+
+## IRT output
+```{r}
+# extract loadings = discrimination (equal in this model)
+gsm.1pl_discrimination <- gsm.1pl_summary$parameters$unstandardized %>%
+  filter(str_detect(paramHeader, '.BY'))
+
+# extract thresholds
+gsm.1pl_thresholds <- gsm.1pl_summary$parameters$unstandardized %>%
+  filter(str_detect(paramHeader, 'Threshold'))
+
+# merge the crucial data
+gsm.1pl_irt.parms <- tibble(
+ items = rep(colnames(items.stringr.prune)[2:23], each=4),
+ thesholdsLabs = gsm.1pl_thresholds$param,
+ thresholdEst = gsm.1pl_thresholds$est,
+ discrimination = rep(gsm.1pl_discrimination$est, each=4),
+ difficulty = discrimination/thresholdEst
+)
+
+# print the table
+kable(gsm.1pl_irt.parms)
+
+cat1 <- function(X) {
+4.704 + (1.469*X)
+}
+cat2 <- function(X) {
+3.583 + (1.469*X)
+}
+
+theta.vals <- c(-3, -2, -1, 0, 1, 2, 3)
+first.step <- lapply(theta.vals, cat1)
+second.step <- lapply(theta.vals, cat2)
+first.step
+second.step
+```
+
+# Plot
+ggplot(data=gsm.1pl_irt.parms, aes(x=thesholdsLabs, y=difficulty, color=items)) +
+  geom_point(position=position_dodge(width=0.3))
+
+table(items.stringr.prune$Des_33)
+table(items.stringr.prune$Self_19)
+table(items.stringr.prune$Self_27)
+table(items.stringr.prune$Self_28)
+
+
+#MIRT and LTM
+```{r}
+#https://www.r-bloggers.com/item-response-modeling-of-customer-satisfaction-the-graded-response-model/
+library(ltm)
+items.ltm<-dplyr::select(items.stringr.prune, -StudentID)
+# runs frequency tables for every item
+item.describe <- descript(items.ltm)                         
+kable(item.describe$perc)
+```
+
+MIRT
+```{r}
+# fit GSM model
+mirt.gsm.1 <- mirt(items.ltm, itemtype = 'graded')
+
+# print cut points
+mirt.gsm.1
+
+# plot ICC
+plot(mirt.gsm.1) 
+
+# plot item information
+plot(mirt.gsm.1, type="ICC")  
+
+# next two lines calculate latent trait scores and assign them to variable named trait
+pattern<-factor.scores(mirt.gsm.1, resp.pattern=items.ltm)
+trait<-pattern$score.dat$z1
+trait
+information(mirt.gsm.1, range=)
+```
+
+# lavaan
+```{r}
+items.stringr.prune[,items.stringr.prune[,c(colnames(items.stringr.prune)[-1]] <- lapply(items.stringr.prune[,c(colnames(items.stringr.prune)[-1])], ordered)
+mymodel <- '
+THETA =~ 
+  NA*Des_15 (1) 
+  Des_17 (1)  
+  Des_21 (1)  
+  Des_24 (1) 
+  Des_26 (1)  
+  Des_29 (1)  
+  Des_33 (1)  
+  Car_16 (1) 
+  Car_18 (1)  
+  Car_20 (1)  
+  Car_23 (1) 
+  Car_25 (1) 
+  Car_28 (1)  
+  Car_30 (1)  
+  Car_32 (1)  
+  Car_34 (1) 
+  Car_36 (1)  
+  Self_19 (1) 
+  Self_22 (1) 
+  Self_27 (1) 
+  Self_31 (1) 
+  Self_35 (1)
+'
+
+```
+
+
+
+
+test <- grm(items.ltm, constrained = TRUE, IRT.param = FALSE, Hessian = FALSE, 
+    start.val = NULL, na.action = NULL, control = list())
+summary(test)
+margins(test)
+plot(test)
+library(mirt)
+mod2 <- mirt(items.ltm, 1, itemtype = 'grsm', technical = list(removeEmptyRows=TRUE), pars = 'value',constrain=list(1,5,9,13,17,21,25))
+########## check model fit ##############
+mirt.gsm.1 <- mirt(items.ltm, 1, technical = list(removeEmptyRows=TRUE), itemtype = 
+                    "graded", SE=TRUE)
+summary(mirt.gsm.1)
+M2(mirt.gsm.1)
+Theta <- fscores(mirt.gsm.1, method = 'ML', full.scores=TRUE, scores.only=TRUE)
+ref.fit <- itemfit(mirt.gsm.1, impute = 10, Theta=Theta)
+ref.fit
+
+descript(items.ltm)                          # runs frequency tables for every item
+```
+
+
+# Sandbox
+```{r}
+# funtion development
+test<-function(x){
+loading <- x$parameters$unstandardized %>%
+  filter(str_detect(paramHeader, '.BY'))
+threshold<- x$parameters$unstandardized %>%
+  filter(str_detect(paramHeader, 'Threshold'))
+return(loading)
+return(threshold)
+}
+
+test(gsm.1pl_summary)
+
+discrimination = loading
+difficulty = threshold/loading
+# PLOTS
+#library(rhdf5)
+#mplus.view.plot('/Users/bfoster/Desktop/2017-edc/science-fairs-analyses/mplus/06_Analayses_gsm.1pl.gh5s')
+```
+
