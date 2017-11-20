@@ -81,7 +81,7 @@ COV = THETA*THETA
 mirt_1pl_fixed  <- mirt.model(mod.syntax_1pl_fixed)
 
 # run the mirt model
-model_1pl_fixed <- mirt(items.stringr.prune[-1], model, itemnames = c(colnames(items.stringr.prune.na[-1])), 
+model_1pl_fixed <- mirt(items.stringr.prune[-1], mirt_1pl_fixed, itemnames = c(colnames(items.stringr.prune[-1])), 
                         itemtype = 'graded', technical = list(removeEmptyRows=TRUE))
 summary(model_1pl_fixed)  # model summary
 coef(model_1pl_fixed)     # model coefficients
@@ -92,26 +92,54 @@ itemfit_1pl_fixed <- itemfit(model_1pl_fixed, impute = 100) # impute because of 
 itemfit_1pl_fixed.imp <- itemfit_1pl_fixed %>%
   slice(24:45) %>% 
   arrange(p.S_X2)
-itemfit_1pl_fixed.imp <- tibble::add_column(itemfit_1pl_fixed.imp, rank = 1:22, "Benjamin-Hochberg (.05)" = rank*(.05/22)) %>%  
-  mutate("Significant?" = ifelse(p.S_X2 <= "Benjamin-Hochberg (.05)", "Yes", "No"))
+
+# create a column that applies the Benjamin-Hochberg correction
+itemfit_1pl_fixed.imp <- tibble::add_column(itemfit_1pl_fixed.imp, rank = 1:22, BH_p = rank*(.05/22),
+                                            sidak_p = 1-(1-.05)^(1/22), bonferroni_p = .05/22) %>% 
+  mutate(significant_Bh_p = ifelse(p.S_X2 <= BH_p, "Yes", "No"),
+         significant_sidak_p = ifelse(p.S_X2 <= sidak_p, "Yes", "No"),
+         significant_bonferroni_p =  ifelse(p.S_X2 <= bonferroni_p, "Yes", "No"))
 kable(itemfit_1pl_fixed.imp)
 
-colnames(itemfit_1pl_fixed.imp)
-
 # examine test information
-Theta <- matrix(seq(-6,6,.01))
-tinfo <- testinfo(model_1pl_fixed, Theta)
-plot(Theta, tinfo, type = 'l')
-plot(model_1pl_fixed, type = "infoSE") 
+info_1pl_fixed <- tibble(
+  theta = seq(-6,6,.01),
+  information = testinfo(model_1pl_fixed, theta),
+  error = 1/sqrt(information))
+
+# plot information and standard error 
+info_1pl_fixed %>%
+  gather(param, value, -theta) %>%
+  ggplot(aes(x=theta, y=value, colour=param)) +
+  geom_line() +
+  theme_minimal() + scale_color_calc() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  labs(title = "Test Information and Standard Errors", 
+       subtitle = "1-PL Graded Response Model with fixed discriminiation",
+       x = "Theta",
+       y = "I(Theta)",
+       color = "Functions")
 
 # Coefficients 
-coef(model_1pl_fixed, simplify = TRUE) 
-coef(model_1pl_fixed, IRTpars = TRUE, simplify = TRUE) 
+# coef(model_1pl_fixed, simplify = TRUE) 
+irtParams_1pl_fixed <- coef(model_1pl_fixed, IRTpars = TRUE, simplify = TRUE) 
+irtParams_1pl_fixed <- as_data_frame(irtParams_1pl_fixed$items)
+irtParams_1pl_fixed <- cbind(irtParams_1pl_fixed, items = colnames(items.stringr.prune[-1])) 
+irtParams_1pl_fixed_long <- irtParams_1pl_fixed %>%
+  gather(param, value, -items) %>%
+  slice(23:110)
 
-# Item fit statistics 
-mirtCluster() # run in parallel
-itemfit(model_1pl_fixed, impute = 10) # impute because of missing
-
+# plot the difficulties
+ggplot(irtParams_1pl_fixed_long, aes(x = items, y = value, color = param, group = param)) + 
+  geom_point()  + 
+  theme_minimal() + scale_color_calc() + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  labs(title = "Category difficulties", 
+       subtitle = "1-PL Graded Response Model with fixed discriminiation",
+       x = "Items",
+       y = "Category Difficulty",
+       color = "Categories")
+ 
 # plots for misfitting items (Car_32, Self_22, Self_19, Des_15, Car_36, Self_31, Des_26)
 # plots
 itemplot(model_1pl_fixed, "Car_32")

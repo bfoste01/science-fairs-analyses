@@ -1,0 +1,278 @@
+---
+title: "Graded Response Models Science Interest Measure"
+author: "Brandon Foster, Ph.D."
+date: "`r format(Sys.time(), '%d %B, %Y, %H:%M')`"
+output:
+  html_document:
+    simplex
+  html_notebook: null
+---
+
+# Introduction
+
+The following focument explores the psychometric properties of the Science Interest Measure using a graded-response modeling (GSM). GSM is ideal for items with clear underlying response continuum (i.e., ordered categorical likert response). GMS models the probability of any given response category or higher (i.e., “cumulative logit model”), where the rating scale is split up into a series of binary categories (i.e., 0 vs. 1,2,3 | 0, 1 vs. 2,3, | 0, 1, 2 vs. 3 |, etc.). As a measurement model, transformed item responses are predicted using properties of persons (i.e., Theta) and properties of items (i.e., difficulty and discrimination). Two types of graded response models are considered in the analyses that follow. In the first the discrimination parameter is estimated, but considered fixed across items, which is analagous to a 1-PL psuedo 1-PL model. As a contrast, the Andrich rating scale model fixes the discrimination at 1 across all items. In the second set of GSM, the discrimination paramter is allowed to vary across items. 
+
+# Data Screeining 
+
+First, let's bring in the data and munge it appropriately. 
+```{r, import, message=FALSE, warning=FALSE, tidy=TRUE}
+# Set working directory ----
+setwd("/Users/bfoster/Desktop/2017-edc/science-fairs-analyses")
+# Load packaes ----
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(MplusAutomation, psych, tidyr, foreign, ggplot2, ggalt, ggthemes, 
+    readr, dplyr, knitr, scales, pander, lavaan, kableExtra, rhdf5, stringr, scales,
+    mirt, ltm, tidyverse, purr, formattable)
+
+# Import the data ----
+joined.dat <- readRDS(file = "../data/joined.dat")
+
+# Munge data ----
+colnames(joined.dat)
+items <- joined.dat %>%
+  dplyr::select(StudentID, s_preInt_Des_15, s_preInt_Des_17, s_preInt_Des_21, s_preInt_Des_24,
+                s_preInt_Des_26, s_preInt_Des_29, s_preInt_Des_33, s_preInt_Car_16,
+                s_preInt_Car_18, s_preInt_Car_20, s_preInt_Car_23, s_preInt_Car_25,
+                s_preInt_Car_28, s_preInt_Car_30, s_preInt_Car_32, 
+                s_preInt_Car_34, s_preInt_Car_36, s_preInt_Self_19, s_preInt_Self_22, 
+                s_preInt_Self_27, s_preInt_Self_31 ,s_preInt_Self_35)
+
+# munge the variable names to remove pre_ and post_ prefixes
+items.stringr.prune <- items %>% 
+  rename_(.dots=setNames(names(.), gsub("s_preInt_", "", names(.))))
+items.stringr.prune <- items.stringr.prune %>%
+    mutate(
+      Des_15 = Des_15 - 1, 
+      Des_17 = Des_17 - 1,
+      Des_21 = Des_21 - 1,
+      Des_24 = Des_24 - 1, 
+      Des_26 = Des_26 - 1,
+      Des_29 = Des_29 - 1,
+      Des_33 = Des_33 - 1,
+      Car_16 = Car_16 - 1,
+      Car_18 = Car_18 - 1,
+      Car_20 = Car_20 - 1,
+      Car_23 = Car_23 - 1,
+      Car_25 = Car_25 - 1,
+      Car_28 = Car_28 - 1,
+      Car_30 = Car_30 - 1,
+      Car_32 = Car_32 - 1, 
+      Car_34 = Car_34 - 1,
+      Car_36 = Car_36 - 1,
+      Self_19 = Self_19 - 1,
+      Self_22 = Self_22 - 1, 
+      Self_27 = Self_27 - 1,
+      Self_31 = Self_31 - 1,
+      Self_35 = Self_35 - 1)
+```
+
+# Item Descriptives
+
+Syntax below creates the item statistics using the `ltm` pacakges, and conducts all necessary munging for printing tables and plots. 
+
+```{r, descriptives.pre, message=FALSE, warning=FALSE, tidy=TRUE}
+# easy item descriptive statistics from the 'ltm' package
+pre.items.descriptives <- descript(items.stringr.prune[-1], chi.squared = TRUE, 
+                                   B = 1000)
+# extract the proportions in each categoty
+pre.per <- do.call(rbind, lapply((pre.items.descriptives[2]), data.frame, 
+                                 stringsAsFactors=FALSE)) %>%
+  mutate(item = colnames(items.stringr.prune)[-1]) %>%
+         rename(Cat1 = X0, Cat2 = X1, Cat3 = X2, Cat4 = X3, Cat5 = X4) %>%
+  dplyr::select(item, Cat1, Cat2, Cat3, Cat4, Cat5)
+
+# convert to long for plotting 
+pre.per.long <- gather(pre.per, cat, value, -item) %>%
+  arrange(item)
+pre.per.long
+
+pre.items.descriptives[9]
+```
+
+Let's look at the percent of missing responses for each item. A color bar has been added to the values in the table to compare the relative proportion missing per each item. 
+```{r, descriptives.1, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+# extract the proportions in each categoty
+do.call(rbind, lapply((pre.items.descriptives[7]), data.frame, 
+                                 stringsAsFactors=FALSE)) %>%
+  rownames_to_column("Statistic") %>%
+  filter(Statistic=="missin.(%)") %>%
+  gather(item, value, -Statistic) %>% 
+  dplyr::select(item, value) %>%
+  rename(Percent = value, Item = item) %>% 
+  mutate("Percent Missing" = color_bar("lightgreen")(Percent)) %>%
+  dplyr::select(Item, "Percent Missing") %>%
+  kable(digits = 2, format="html", caption="Category Utilization for Pre-Administration 
+        Period", escape = F) %>%
+    kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+```
+
+Let's look at the table of the proportions of rating scale category utilization to see if anything looks aberant. The table shows that for most items the utilization of teh lower categories is low. This might pose problems downstream whenthe category probability curves are examined. 
+
+```{r, descriptives.2, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+# print the table
+pre.per %>%
+  kable(digits = 3, format="html", caption="Category Utilization for Pre-Administration 
+        Period") %>%
+    kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+```
+
+A visualization is provided for another perspective to examine category utilization. 
+```{r, descriptives.3, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+# plot the proportions
+p_pl1_prop <- ggplot() + geom_bar(aes(y = value, x = item, fill = cat), 
+                                  data = pre.per.long, stat="identity") +
+  ggtitle("Proportion of Category Utilization") + 
+  scale_fill_ptol() + theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) 
+p_pl1_prop
+```
+
+Examine the CTT reliability statistics (i.e., alpha and alpha-if-removed for each item). 
+```{r, descriptives.4, message=FALSE, warning=FALSE, tidy=TRUE}
+# extract the proportions in each categoty
+items <- c("Total Alpha", colnames(items.stringr.prune)[-1])
+do.call(rbind, lapply((pre.items.descriptives[9]), data.frame, 
+                                 stringsAsFactors=FALSE)) %>%
+  mutate(Item = items) %>%
+  dplyr::select(Item, value) %>%
+  kable(digits = 2, format="html", caption="Alpha for Pre-Administration 
+        Period", escape = F) %>%
+    kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+```
+
+# Fit the GSM models
+
+The syntax below fits both the 1-PLish and 2-PL GSM model. The syntax block concludes by comparing the fit of one model versus the other in order to decide which model to utilize moving forward. 
+```{r, 1_pl_fixed, message=FALSE, warning=FALSE, tidy=TRUE}
+# MIRT syntax for 1-PLish model with fixed discrimination 
+mod.syntax_1pl_fixed <- '
+THETA=1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22
+CONSTRAIN = (1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,a1)
+COV = THETA*THETA
+'
+
+mirt_1pl_fixed  <- mirt.model(mod.syntax_1pl_fixed) # make the MIRT model part 2
+
+# run the mirt 1-PLish model
+model_1pl_fixed <- mirt(items.stringr.prune[-1], mirt_1pl_fixed, itemnames = c(colnames(items.stringr.prune[-1])), 
+                        itemtype = 'graded', technical = list(removeEmptyRows=TRUE), 
+                        empiricalhist = TRUE)
+
+# MIRT syntax for 2-PL model with fixed discrimination 
+mod.syntax_2pl <- '
+THETA=1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22
+COV = THETA*THETA
+'
+
+mirt_2pl <- mirt.model(mod.syntax_2pl) # make the MIRT model part 2
+
+# run the mirt 1-PLish model
+model_2pl <- mirt(items.stringr.prune[-1], mirt_2pl, itemnames = c(colnames(items.stringr.prune[-1])), 
+                        itemtype = 'graded', technical = list(removeEmptyRows=TRUE), 
+                        empiricalhist = TRUE)
+
+summary(model_1pl_fixed)
+# test the fit of 1 model vs. the other 
+anova(model_2pl, model_1pl_fixed)
+```
+
+Examine the item fit statistics
+```{r, 1_pl_fixed_itemFit, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+# Item fit statistics 
+mirtCluster()  # run in parallel to impute because missing
+itemfit_1pl_fixed <- itemfit(model_1pl_fixed, impute = 100) # impute because of missing
+itemfit_1pl_fixed.imp <- itemfit_1pl_fixed %>%
+  slice(24:45) %>% 
+  arrange(p.S_X2)
+
+# create a column that applies the Benjamin-Hochberg correction
+itemfit_1pl_fixed.imp <- tibble::add_column(itemfit_1pl_fixed.imp, rank = 1:22, 
+                                            BH_p = rank*(.05/22) ,sidak_p = 1-(1-.05)^(1/22), 
+                                            bonferroni_p = .05/22) %>% 
+  mutate(significant_Bh_p = ifelse(p.S_X2 <= BH_p, "Yes", "No"),
+         significant_sidak_p = ifelse(p.S_X2 <= sidak_p, "Yes", "No"),
+         significant_bonferroni_p =  ifelse(p.S_X2 <= bonferroni_p, "Yes", "No"))
+kable(itemfit_1pl_fixed.imp)
+```
+Look at the information and SEM 
+```{r, 1_pl_fixed_info, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+# examine test information
+info_1pl_fixed <- tibble(
+  theta = seq(-6,6,.01),
+  information = testinfo(model_1pl_fixed, theta),
+  error = 1/sqrt(information),
+  reliability = information/(information+1))
+
+# plot information and standard error 
+info_1pl_fixed %>%
+  select(theta, information, error) %>%
+  gather(param, value, -theta) %>%
+  ggplot(aes(x=theta, y=value, colour=param)) +
+  geom_line() +
+  theme_minimal() + scale_color_calc() +
+  theme(axis.text.x = element_text(angle = 0, hjust = 1)) +
+  labs(title = "Test Information and Standard Errors", 
+       subtitle = "1-PL Graded Response Model with fixed discriminiation",
+       x = "Theta",
+       y = "I(Theta)",
+       color = "Functions")
+
+# plot reliability 
+info_1pl_fixed %>%
+  ggplot(aes(x=theta, y=reliability)) +
+  geom_line() +
+  geom_hline(yintercept = .75, color="blue")  + 
+  theme_minimal() + scale_color_calc() +
+  theme(axis.text.x = element_text(angle = 0, hjust = 1)) +
+  labs(title = "Test Information and Standard Errors", 
+       subtitle = "1-PL Graded Response Model with fixed discriminiation",
+       x = "Theta",
+       y = "I(Theta)",
+       color = "Functions")
+```
+
+Examine the item coefficients w/irt parameterization
+```{r, 1_pl_fixed_coef, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+# Coefficients 
+# coef(model_1pl_fixed, simplify = TRUE) 
+irtParams_1pl_fixed <- coef(model_1pl_fixed, IRTpars = TRUE, simplify = TRUE) 
+irtParams_1pl_fixed <- as_data_frame(irtParams_1pl_fixed$items)
+irtParams_1pl_fixed <- cbind(irtParams_1pl_fixed, items = colnames(items.stringr.prune[-1])) 
+irtParams_1pl_fixed_long <- irtParams_1pl_fixed %>%
+  gather(param, value, -items) %>%
+  slice(23:110)
+
+# plot the difficulties
+ggplot(irtParams_1pl_fixed_long, aes(x = items, y = value, color = param, group = param)) + 
+  geom_point()  + 
+  theme_minimal() + scale_color_calc() + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  labs(title = "Category difficulties", 
+       subtitle = "1-PL Graded Response Model with fixed discriminiation",
+       x = "Items",
+       y = "Category Difficulty",
+       color = "Categories")
+```
+
+Plot the item trace lines
+```{r, 1_pl_fixed_trace, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+# Item Information Curves 
+plot(model_1pl_fixed, type = "trace", facet_items = T) 
+```
+
+
+other
+```{r}
+# Factor scores vs Standardized total scores 
+fs <- as.vector(fscores(model_1pl_fixed)) 
+sts <- as.vector(scale(apply(na.omit(items.stringr.prune)[-1], 1, sum))) 
+plot(fs ~ sts) 
+# Item Characteristic Curves 
+plot(model_1pl_fixed, type = "infotrace", facet_items = T) 
+# Item Information Curves 
+plot(model_1pl_fixed, type = "itemscore", facet_items = T) 
+# Test Information Function 
+plot(model_1pl_fixed, type = "empiricalhist") 
+plot(model_1pl_fixed, type='rxx')
+```
+
