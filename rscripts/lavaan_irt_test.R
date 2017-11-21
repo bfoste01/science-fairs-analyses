@@ -140,6 +140,8 @@ ggplot(irtParams_1pl_fixed_long, aes(x = items, y = value, color = param, group 
        y = "Category Difficulty",
        color = "Categories")
  
+
+
 # plots for misfitting items (Car_32, Self_22, Self_19, Des_15, Car_36, Self_31, Des_26)
 # plots
 itemplot(model_1pl_fixed, "Car_32")
@@ -307,3 +309,63 @@ margins(fit_grm_unconstrain, type = "three-way")
 # Standard Error of Measurement
 plot(fit_grm_unconstrain[, "z"], 1 / sqrt(fit_grm_unconstrain[, "info"]), type = "l", lwd = 2, xlab = "Attitude", ylab = "Standard Error", 
      main = "Standard Error of Measurement")
+
+
+
+# SANDBOx--------
+lavmodel <- "
+THETA =~ 
+  NA*Des_15 + Des_17 + Des_21 + Des_24+ Des_26 + Des_29 + Des_33 + Car_16+ Car_18 + Car_20 + Car_23+ Car_25+ Car_28 + Car_30 + Car_32 + Car_34+ Car_36 + Self_19+ Self_22+ Self_27+ Self_31+ Self_35
+THETA~~THETA
+"
+
+lavmodel.2 <- "
+THETA =~ 
+NA*Des_15 + Des_17 + Des_21 + Des_24+ Des_26 + Des_29 + Des_33 + Car_16+ Car_18 + Car_20 + Car_23+ Car_25+ Car_28 + Car_30 + Car_32 + Car_34+ Car_36 + Self_19+ Self_22+ Self_27+ Self_31 + Self_35
+THETA~~THETA
+"
+
+lavmodel.3 <- "
+THETA =~ NA*Des_15 + Des_17 + Des_21 + Des_24+ Des_26 + Des_29 + Des_33 + Car_16+ Car_18 + Car_20 + Car_23+ Car_25+ Car_28 + Car_30 + Car_32 + Car_34+ Car_36 + Self_19+ Self_22+ Self_27+ Self_31 + Self_35
+
+Des_15 ? = guess1*g1
+Des_17 ? = guess2*g2
+Des_21 ? = guess3*g3
+Des_24 ? = guess4*g4
+Des_26 ? = guess5*g5
+Des_29 ? = guess6*g6
+Des_33 ? = guess7*g7
+Car_16 ? = guess8*g8
+Car_18 ? = guess9*g9 
+Car_20 ? = guess10*g10
+Car_23 ? = guess11*g11
+Car_25 ? = guess12*g12
+Car_28 ? = guess13*g13
+Car_30 ? = guess14*g14
+Car_32 ? = guess15*g15
+Car_34 ? = guess16*g16
+Car_36 ? = guess17*g17
+Self_19 ? = guess18*g18
+Self_22 ? = guess19*g19
+Self_27 ? = guess20*g20
+Self_31 ? = guess21*g21
+Self_35 ? = guess22*g22
+THETA~~THETA
+"
+
+
+library(sirt)
+library(lavaan)
+
+items.2 <- items[-1]
+lavaan.items <- items.2 %>%
+ mutate_if(is.factor,character)
+lavaan.items <- na.omit(lavaan.items)
+lavaan.items <- as.matrix(lavaan.items)
+
+res <- sirt::lavaan2mirt(lavaan.items, lavmodel.3)
+
+summary(res)
+res$mirt.pars
+
+coef(model_2pl)
