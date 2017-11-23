@@ -1,10 +1,10 @@
 ---
-title: "Graded Response Models Science Interest Measure"
+title: "Item Response Models Science Interest Measure (Pre-Fair Exposure Period)"
 author: "Brandon Foster, Ph.D."
 date: "`r format(Sys.time(), '%d %B, %Y, %H:%M')`"
 output:
   html_document:
-    simplex
+    theme: paper
   html_notebook: null
 ---
 
@@ -90,6 +90,7 @@ pre.per.long <- gather(pre.per, cat, value, -item) %>%
 ```
 
 2. Let's look at the percent of missing responses for each item. A color bar has been added to the values in the table to compare the relative proportion missing per each item. 
+
 ```{r, descriptives.1, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
 # extract the proportions in each categoty
 do.call(rbind, lapply((pre.items.descriptives[7]), data.frame, 
@@ -99,7 +100,7 @@ do.call(rbind, lapply((pre.items.descriptives[7]), data.frame,
   gather(item, value, -Statistic) %>% 
   dplyr::select(item, value) %>%
   rename(Percent = value, Item = item) %>% 
-  mutate("Percent Missing" = color_bar("lightgreen")(Percent)) %>%
+  mutate("Percent Missing" = color_bar("lightgreen")((Percent/100)*100)) %>%
   dplyr::select(Item, "Percent Missing") %>%
   kable(digits = 2, format="html", caption="Category Utilization for Pre-Administration 
         Period", escape = F) %>%
@@ -117,7 +118,8 @@ pre.per %>%
     kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
 ```
 
-4. A visualization is provided for another perspective to examine category utilization. 
+4. A visualization is provided for another perspective to examine category utilization.
+
 ```{r, descriptives.3, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
 # plot the proportions
 p_pl1_prop <- ggplot() + geom_bar(aes(y = value, x = item, fill = cat), 
@@ -129,12 +131,14 @@ p_pl1_prop
 ```
 
 5. A histogram of the total score. You see a spike with people near the complete total of 110, as well as a long left tail. 
+
 ```{r, descriptives.4, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
 total <- rowSums(items[-1])
 histogram(~total, breaks=50)
 ```
 
 6. Examine the CTT reliability statistics (i.e., alpha and alpha-if-removed for each item). 
+
 ```{r, descriptives.5, message=FALSE, warning=FALSE, tidy=TRUE}
 # extract the proportions in each categoty
 item.names.alpa <- c("Total Alpha", colnames(items)[-1])
@@ -170,7 +174,8 @@ model_1pl_fixed <- mirt(items[-1], mirt_1pl_fixed, itemnames =
                         itemtype = 'graded', 
                         technical = list(removeEmptyRows=TRUE, parallel=TRUE), 
                         empiricalhist = TRUE,
-                        SE = TRUE, SE.type = 'sandwich')
+                        SE = TRUE, SE.type = 'sandwich',
+                        verbose = FALSE)
 
 # MIRT syntax for 2-PL model with fixed discrimination 
 mod.syntax_2pl <- '
@@ -185,21 +190,24 @@ model_2pl <- mirt(items[-1], 1, itemnames = c(colnames(items[-1])),
                   itemtype = 'graded', 
                   technical = list(removeEmptyRows=TRUE, parallel=TRUE), 
                   empiricalhist = TRUE, 
-                  SE = TRUE, SE.type = 'sandwich')
+                  SE = TRUE, SE.type = 'sandwich',
+                  verbose = FALSE)
 
 # run the mirt 2-PL GRSM model
 model_2pl_grsm <- mirt(items[-1], 1, itemnames = c(colnames(items[-1])), 
                   itemtype = 'grsmIRT', 
                   technical = list(removeEmptyRows=TRUE, parallel=TRUE), 
                   empiricalhist = TRUE, 
-                  SE = TRUE, SE.type = 'sandwich')
+                  SE = TRUE, SE.type = 'sandwich',
+                  verbose = FALSE)
 
 # run the mirt 2-PL GPCM model
 model_2pl_gpcm <- mirt(items[-1], 1, itemnames = c(colnames(items[-1])), 
                   itemtype = 'gpcmIRT', 
                   technical = list(removeEmptyRows=TRUE, parallel=TRUE), 
                   empiricalhist = TRUE, 
-                  SE = TRUE, SE.type = 'sandwich')
+                  SE = TRUE, SE.type = 'sandwich',
+                  verbose = FALSE)
 
 # test the fit of 1 model vs. the other w/ BIC Table
 tibble(
@@ -238,6 +246,8 @@ as.data.frame(coef(model_2pl, IRTparms = T, simplify = TRUE)) %>%
   kable(digits = 2, format="html", caption="Item IRT Parameters", escape = F) %>%
     kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
 
+# plot the average observed vs. expected curve
+plot(model_2pl, type = 'score', MI=100)
 
 # Plot the category probability curves for highest discriminations
 p.36 <- itemplot(model_2pl, "Car_36", type = 'infotrace')
@@ -353,6 +363,7 @@ itemfit(model_2pl, empirical.table = 13)
 ```
 
 4. Examine information, SEM, and reliability for the whole measure. The plots show that the measure captures the most information from theta -2 to +2. No surprise that SEM was lowest in this range. Reliability was highest between -4 to 2.25. 
+
 ```{r, mirt.4, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
 # examine test information
 info_model_2pl <- tibble(
@@ -372,11 +383,33 @@ plot(model_2pl, type='rxx', MI=100)
 ```
 
 # Factor scores vs Standardized total scores 
+
 ```{r}
 # Factor scores vs Standardized total scores 
 fs <- as.vector(fscores(model_2pl.na, method = "WLE")) 
 sts <- as.vector(scale(apply(na.omit(items)[-1], 1, sum))) 
 plot(fs ~ sts) 
+thetas <- fscores(model_2pl, method = "EAP")
+hist(thetas)
+
+
+# run the mirt 2-PL GSM model
+items_red <- dplyr::select(items, Des_17, Des_21, Des_24,
+                Des_26, Des_29, Des_33, Car_16,
+                Car_18, Car_20, Car_23, Car_25,
+                Car_28, Car_30, Car_32, 
+                Car_34, Car_36)
+model_2pl_edit <- mirt(items_red, 1, itemnames = c(colnames(items[-1])), 
+                  itemtype = 'graded', 
+                  technical = list(removeEmptyRows=TRUE, parallel=TRUE), 
+                  empiricalhist = TRUE, 
+                  SE = TRUE, SE.type = 'sandwich',
+                  verbose = FALSE)
+mods <- list(twoPL = model_2pl, twoPLRed = model_2pl_edit)
+itemplot(mods, 1, type = 'RE')
+itemplot(mods, 2, type = 'RE')
+itemplot(mods, 3, type = 'RE')
+plot(mods, type="infoSE")
 
 ```
 
