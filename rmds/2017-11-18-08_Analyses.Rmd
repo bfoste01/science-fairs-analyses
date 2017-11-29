@@ -418,7 +418,6 @@ ggplot(fscore_plot_dat, aes(x=sts, y=fs)) +
 
 # histogram of theta
 ggplot(fscore_plot_dat, aes(fscore_plot_dat$fs)) + geom_histogram(bins=50)
-
 ```
 
 Results showed that there was a linear association between total scores and IRT scores, with IRT scores that show a normal distribution and the presence of a potentially few outliers that could be examined more fully with person fit statistics, and potentially removed from later analyses. 
@@ -706,7 +705,7 @@ Results showed that Self_19 had both the highest and lowest item difficulty calp
 
 Next, the category response curves are examined, looking for overlap in category curves, as well as plateus in the information curves. 
 
-```{r, mirt.crc, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+```{r, mirt.crc.2, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
 # table for reference
 tibble(
   Item = colnames(items.self)[-1],
@@ -726,7 +725,7 @@ Results show an improvement in terms of information provided by the items when c
 
 ### Model fit
 Model and item fit. Note, the M2 statistic, and assocaited model fit statistics were not provided because degrees of freedom were too low. This problem is likely easily fixed if additional items were to be included in the measure. 
-```{r, mirt.self.2, message=FALSE, warning=FALSE, tidy=TRUE}
+```{r, message=FALSE, warning=FALSE, tidy=TRUE}
 # Piecewise misfit ---
 
 # item fit statistics 
@@ -772,7 +771,7 @@ itemfit_Self_35
 
 Examine information, SEM, and reliability for the whole measure.
 
-```{r, mirt.4, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+```{r, mirt.4.2, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
 # examine test information
 info_model_2pl_self <- tibble(
   theta = seq(-6,6,.01),
@@ -834,9 +833,11 @@ as.data.frame(coef(model_2pl_desire, IRTparms = T, simplify = TRUE)) %>%
   kable(digits = 2, format="html", caption="Item IRT Parameters", escape = F) %>%
     kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
 ```
+
 Results showed that two items, Des_26 and Des_21 had discrimination parameters < 1, which is an indication that these items might not fit the model well. 
 
 ### Item difficulty plot
+
 ```{r, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
 # plot the average observed vs. expected curve
 # plot(model_2pl, type = 'score', MI=100)
@@ -864,5 +865,245 @@ ggplot(irtParms_model_2pl_long_desire, aes(x = items, y = value,
        color = "Categories")
 ```
 
-Among the items in the desire to do science items, 
+Among the items in the desire to do science items, Des_21 had the highest item difficulty calibration, while Des_26 showed the lowest item difficulty calibration. In general, most item difficulty calibrations were between -3 and 1 (i.e., below average to slightly above average desire to do science). 
 
+### Category response curves
+
+Next, the category response curves are examined, looking for overlap in category curves, as well as plateaus in the information curves. 
+
+```{r, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+# create dataframe for item reference
+tibble(
+  Item = colnames(items.desire)[-1],
+  Number = 1:7) %>%
+  kable(digits = 2, format="html", caption="Item Labels and Reference Numbers", escape = F) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+
+# create fucntion to plot combined CRC and inforamtion 
+plotCRC_desire <- function(i){
+itemplot(model_2pl_desire, i, type = 'infotrace')
+}
+
+# plot all items using the function
+lapply(colnames(items.desire)[-1], plotCRC_desire)
+```
+The following items displayed excessively wide CRCS and flat information curves: Des_17, Des_21, Des_24, and Des_26. These items, especially Des_21 and Des_26, should likely be removed from this measure. 
+
+### Model fit
+
+Model and item fit. Note, the M2 statistic, and assocaited model fit statistics were not provided because degrees of freedom were too low. This problem is likely easily fixed if additional items were to be included in the measure. 
+
+```{r, message=FALSE, warning=FALSE, tidy=TRUE}
+# Piecewise misfit ---
+
+# item fit statistics 
+itemfit_2pl_desire <- itemfit(model_2pl_desire, impute = 100) 
+
+# apply a false discovery rate to the p-value 
+# p.fdr <- p.adjust(itemfit_2pl$p.S_X2,"BH")
+# itemfit_2pl <- cbind(itemfit_2pl, p.fdr) # bind to previous work
+
+# sort the item fit statistics by p-value
+itemfit_2pl_desire %>%
+  slice(1:7) %>% 
+  arrange(p.S_X2) %>%
+  kable(digits = 2, format="html", caption="Item Fit Statistics", escape = F) %>%
+    kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+```
+### Reliability and SEM 
+
+Examine information, SEM, and reliability for the whole measure.
+
+```{r, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+# examine test information
+info_model_2pl_desire <- tibble(
+  theta = seq(-6,6,.01),
+  information = testinfo(model_2pl_desire, theta),
+  error = 1/sqrt(information),
+  reliability = information/(information+1))
+
+# plot test information
+plot(model_2pl_desire, type='info', MI=100)
+
+# plot SEM
+plot(model_2pl_desire, type='SE', MI=100)
+
+# plot alpha at theta levels
+plot(model_2pl_desire, type='rxx', MI=100)
+```
+Results showed that information in the measure was maximized between theta 2.25 and 1.5, indicating these items provide information about students with below to above average desire to do science. 
+
+### Factor scores vs Standardized total scores 
+
+```{r, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+# Factor scores vs Standardized total scores 
+items.desire.na <- na.omit(items.desire)
+
+# fit model with complete cases
+model_2pl.desire.na <- mirt(items.desire.na[-1], 1, 
+                            itemnames = c(colnames(items.desire.na[-1])), 
+                            itemtype = 'graded', 
+                            pars=mod2values(model_2pl_desire), TOL=NaN)
+
+fs_desire <- as.vector(fscores(model_2pl.desire.na, method = "WLE", full.scores = TRUE)) 
+sts_desire <- as.vector(scale(apply(na.omit(items.desire)[-1], 1, sum))) 
+fscore_plot_dat_desire <- as_data_frame(cbind(fs_desire, sts_desire))
+
+# plot it
+ggplot(fscore_plot_dat_desire, aes(x=sts_desire, y=fs_desire)) + 
+  geom_point()+
+  geom_smooth()
+
+# histogram of theta
+ggplot(fscore_plot_dat_desire, aes(fscore_plot_dat_desire$fs_desire)) + geom_histogram(bins=50)
+```
+
+Results for the irt score were generally normally distributed, with a spike in the max score. A subsequent analysis of person fit might show these cases to be outliers who should be removed from subsequent analyses. 
+
+## Career interest in science
+
+### IRT coefficients
+Inspect the best model using coef(), plotting functions and goodness-of-fit functions. 
+
+```{r, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+as.data.frame(coef(model_2pl_career, IRTparms = T, simplify = TRUE)) %>%
+  rename(discrimination = items.a1,
+         difficulty_cat1_2345 = items.d1,
+         difficulty_cat12_345 = items.d2,
+         difficulty_cat123_45 = items.d3,
+         difficulty_cat1234_5 = items.d4) %>%
+  mutate(Item = colnames(items.career)[-1]) %>%
+  dplyr::select(Item, discrimination, difficulty_cat1_2345, difficulty_cat12_345, 
+         difficulty_cat123_45, difficulty_cat1234_5) %>%
+  arrange(-discrimination) %>%
+  kable(digits = 2, format="html", caption="Item IRT Parameters", escape = F) %>%
+    kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+```
+
+Results showed that three items, Car_34, Car_16, and Car_28 had discrimination parameters < 1, which is an indication that these items might not fit the model well. 
+
+### Item difficulty plot
+
+```{r, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+# plot the average observed vs. expected curve
+# plot(model_2pl, type = 'score', MI=100)
+
+# coef(model_1pl_fixed, simplify = TRUE) 
+irtParms_model_2pl_career <- coef(model_2pl_career, IRTpars = TRUE, simplify = TRUE) 
+irtParms_model_2pl_career <- as.data.frame(irtParms_model_2pl_career$items)
+irtParms_model_2pl_career <- cbind(irtParms_model_2pl_career, items = 
+                                     colnames(items.career[-1])) 
+# convert wide to long
+irtParms_model_2pl_long_career <- irtParms_model_2pl_career %>%
+  gather(param, value, -items) %>%
+  slice(11:50)
+
+# plot the difficulties
+ggplot(irtParms_model_2pl_long_career, aes(x = items, y = value, 
+                                           color = param, group = param)) + 
+  geom_point()  + 
+  theme_minimal() + scale_color_calc() + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  labs(title = "Category difficulties", 
+       subtitle = "1-PL Graded Response Model with fixed discriminiation",
+       x = "Items",
+       y = "Category Difficulty",
+       color = "Categories")
+```
+
+Among the items in the career interest in science items, Car_28 had the highest item difficulty calibration, while Car_16, Car_23, and Car_34 all had approximately the same owest item difficulty calibrations. In general, most item difficulty calibrations were between -3 and 2 (i.e., below average to slightly above average career interest in science). 
+
+### Category response curves
+
+Next, the category response curves are examined, looking for overlap in category curves, as well as plateaus in the information curves. 
+
+```{r, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+# create dataframe for item reference
+tibble(
+  Item = colnames(items.career)[-1],
+  Number = 1:10) %>%
+  kable(digits = 2, format="html", caption="Item Labels and Reference Numbers", escape = F) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+
+# create fucntion to plot combined CRC and inforamtion 
+plotCRC_career <- function(i){
+itemplot(model_2pl_career, i, type = 'infotrace')
+}
+
+# plot all items using the function
+lapply(colnames(items.career)[-1], plotCRC_career)
+```
+Result showed...
+
+### Model fit
+
+Model and item fit. Note, the M2 statistic, and assocaited model fit statistics were not provided because degrees of freedom were too low. This problem is likely easily fixed if additional items were to be included in the measure. 
+
+```{r, message=FALSE, warning=FALSE, tidy=TRUE}
+# Piecewise misfit ---
+
+# item fit statistics 
+itemfit_2pl_career <- itemfit(model_2pl_career, impute = 100) 
+
+# apply a false discovery rate to the p-value 
+# p.fdr <- p.adjust(itemfit_2pl$p.S_X2,"BH")
+# itemfit_2pl <- cbind(itemfit_2pl, p.fdr) # bind to previous work
+
+# sort the item fit statistics by p-value
+itemfit_2pl_career %>%
+  slice(1:10) %>% 
+  arrange(p.S_X2) %>%
+  kable(digits = 2, format="html", caption="Item Fit Statistics", escape = F) %>%
+    kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+```
+Results showed that Car_28, Car_16, Car_25, and Car_18 all misfit the model. Taken in conjunction with the the discrimination parameters, the results suggest that some of these items that show overlapping evidence for misfit should be removed from the measure. 
+
+### Reliability and SEM 
+
+Examine information, SEM, and reliability for the whole measure.
+
+```{r, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+# examine test information
+info_model_2pl_career <- tibble(
+  theta = seq(-6,6,.01),
+  information = testinfo(model_2pl_career, theta),
+  error = 1/sqrt(information),
+  reliability = information/(information+1))
+
+# plot test information
+plot(model_2pl_career, type='info', MI=100)
+
+# plot SEM
+plot(model_2pl_career, type='SE', MI=100)
+
+# plot alpha at theta levels
+plot(model_2pl_career, type='rxx', MI=100)
+```
+Results showed that information in the measure was maximized between theta 2.25 and 2, indicating these items provide information about students with below to above average career to do science. 
+
+### Factor scores vs Standardized total scores 
+
+```{r, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+# Factor scores vs Standardized total scores 
+items.career.na <- na.omit(items.career)
+
+# fit model with complete cases
+model_2pl.career.na <- mirt(items.career.na[-1], 1, 
+                            itemnames = c(colnames(items.career.na[-1])), 
+                            itemtype = 'graded', 
+                            pars=mod2values(model_2pl_career), TOL=NaN)
+
+fs_career <- as.vector(fscores(model_2pl.career.na, method = "WLE", full.scores = TRUE)) 
+sts_career <- as.vector(scale(apply(na.omit(items.career)[-1], 1, sum))) 
+fscore_plot_dat_career <- as_data_frame(cbind(fs_career, sts_career))
+
+# plot it
+ggplot(fscore_plot_dat_career, aes(x=sts_career, y=fs_career)) + 
+  geom_point()+
+  geom_smooth()
+
+# histogram of theta
+ggplot(fscore_plot_dat_career, aes(fscore_plot_dat_career$fs_career)) + geom_histogram(bins=50)
+```
+
+Results for the irt score were generally normally distributed, with a spike in the max score. A subsequent analysis of person fit might show these cases to be outliers who should be removed from subsequent analyses. 
