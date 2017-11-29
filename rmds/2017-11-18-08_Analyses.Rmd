@@ -5,7 +5,6 @@ date: "`r format(Sys.time(), '%d %B, %Y, %H:%M')`"
 output:
   html_document:
     theme: paper
-  html_notebook: null
 ---
 
 # Introduction
@@ -69,9 +68,11 @@ item.ref <- tibble(
   Number = 1:22)
 ```
 
-# Item Descriptives
+# Full measure
 
-1. Syntax below creates the item statistics using the `ltm` packages, and conducts all necessary munging for printing tables and plots. 
+## Item Descriptives
+
+The syntax below creates the item statistics using the `ltm` packages, and conducts all necessary munging for printing tables and plots. 
 
 ```{r, descriptives.pre, message=FALSE, warning=FALSE, tidy=TRUE}
 # easy item descriptive statistics from the 'ltm' package
@@ -89,7 +90,9 @@ pre.per.long <- gather(pre.per, cat, value, -item) %>%
   arrange(item)
 ```
 
-2. Let's look at the percent of missing responses for each item. A color bar has been added to the values in the table to compare the relative proportion missing per each item. 
+### Analysis of mising data
+
+Let's look at the percent of missing responses for each item. A color bar has been added to the values in the table to compare the relative proportion missing per each item. 
 
 ```{r, descriptives.1, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
 # extract the proportions in each categoty
@@ -106,8 +109,11 @@ do.call(rbind, lapply((pre.items.descriptives[7]), data.frame,
         Period", escape = F) %>%
     kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
 ```
+Results showed that Des_17, Des_33, and Car_20 had the highest percentage of missing data. However, missing data for these items generally amounted to 5%. 
 
-3. Let's look at the table of the proportions of rating scale category utilization to see if anything looks aberrant. The table shows that for most items the utilization of the lower categories is low. This might pose problems downstream when the category probability curves are examined. 
+### Category utilization 
+
+Let's look at the table of the proportions of rating scale category utilization to see if anything looks aberrant.  
 
 ```{r, descriptives.2, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
 # print the table
@@ -118,7 +124,7 @@ pre.per %>%
     kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
 ```
 
-4. A visualization is provided for another perspective to examine category utilization.
+A visualization is provided for another perspective to examine category utilization.
 
 ```{r, descriptives.3, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
 # plot the proportions
@@ -130,15 +136,20 @@ p_pl1_prop <- ggplot() + geom_bar(aes(y = value, x = item, fill = cat),
 p_pl1_prop
 ```
 
-5. A histogram of the total score. You see a spike with people near the complete total of 110, as well as a long left tail. 
+Both the table and figure show that for most items the utilization of the lower categories is low. This might pose problems downstream when the category probability curves are examined.
+
+### Distribution of total score
+A histogram of the total score is provided to examine whether the total score for the measure is normally distributed with no obvious ceiling or floor effects. 
 
 ```{r, descriptives.4, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
 total <- rowSums(items[-1])
-histogram(~total, breaks=50)
+histogram(~total, breaks=10)
 ```
+The figure shows a distribution with a slightly long left tail.  
 
-6. Examine the CTT reliability statistics (i.e., alpha and alpha-if-removed for each item). 
+### Cronbach's alpha 
 
+Examine the CTT reliability statistics (i.e., alpha and alpha-if-removed for each item). 
 ```{r, descriptives.5, message=FALSE, warning=FALSE, tidy=TRUE}
 # extract the proportions in each categoty
 item.names.alpa <- c("Total Alpha", colnames(items)[-1])
@@ -150,10 +161,11 @@ do.call(rbind, lapply((pre.items.descriptives[9]), data.frame,
         Period", escape = F) %>%
     kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
 ```
+Alpha for the measure was very high. However, it should be noted that, while reviewers might like to see this statistic, [it is generally meaningless](https://link.springer.com/article/10.1007/s11336-008-9101-0). 
 
-# Fit the GSM models
+## Fit the GSM models
 
-1. The syntax below fits both the 1-PLish and 2-PL GSM model. The syntax block concludes by comparing the fit of one model versus the other in order to decide which model to utilize moving forward. Standard errors are calculated based on the sandwich covariance estimate, which was chosen to adjust for nesting in the data. Results for the comparison between models, using the `anova()` and the `M2()` functions, showed that the 2-PL was a better fitting model to the item responses. As such, this model was utilized in followup analyses. 
+The syntax below fits both the 1-PLish and several variations of 2-PL models. The syntax block concludes by comparing the fit of one model versus the other in order to decide which model best fits the data, an thusly what model to utilize moving forward. Standard errors are calculated based on the sandwich covariance estimate, which was chosen to adjust for nesting in the data. 
 
 ```{r, mirt.1, message=FALSE, warning=FALSE, tidy=TRUE}
 # define the number of cores for quicker processing 
@@ -166,7 +178,8 @@ CONSTRAIN = (1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,a1)
 COV = THETA*THETA
 '
 
-mirt_1pl_fixed  <- mirt.model(mod.syntax_1pl_fixed) # make the MIRT model part 2
+# make the MIRT model part 2
+mirt_1pl_fixed  <- mirt.model(mod.syntax_1pl_fixed) 
 
 # run the mirt 1-PLish model
 model_1pl_fixed <- mirt(items[-1], mirt_1pl_fixed, itemnames = 
@@ -178,12 +191,12 @@ model_1pl_fixed <- mirt(items[-1], mirt_1pl_fixed, itemnames =
                         verbose = FALSE)
 
 # MIRT syntax for 2-PL model with fixed discrimination 
-mod.syntax_2pl <- '
-THETA=1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22
-COV = THETA*THETA
-'
+# mod.syntax_2pl <- '
+# THETA=1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22
+# COV = THETA*THETA
+# '
 
-mirt_2pl <- mirt.model(mod.syntax_2pl) # make the MIRT model part 2
+# mirt_2pl <- mirt.model(mod.syntax_2pl) # make the MIRT model part 2
 
 # run the mirt 2-PL GSM model
 model_2pl <- mirt(items[-1], 1, itemnames = c(colnames(items[-1])), 
@@ -225,14 +238,13 @@ tibble(
 # residuals(model_2pl)
 # expected.item(model_2pl)
 ```
+Results for the comparison between models, using the `anova()` and the `M2()` functions, showed that  [Samejima's (1969)](https://www.psychometricsociety.org/sites/default/files/pdf/MN17.pdf) graded response model (GRM) was the best fitting for the data, and is utilized in subsequent model followup. Under the GRM an item is comprised of k ordered response options. Parameters are estimated for k-1 categories. Each boundary response function represents the cumulative probability of selecting any response options greater than the option of interest (i.e., 2 vs 3, 4, 5; 2, 3 vs. 4, 5; 2, 3, 4 vs. 5). Two types of parameters characterize the response patterns of individuals when using the GRM, a(i) is a measure of the discriminating power of the item. It indicates the magnitude of change of probability of responding to the item in a particular direction as a function of trait level (i.e., steepness of the curves), and the difficulty or location parameter b(i) for each category of the rating scale, which provides a measure of item difficulty or, in personality assessment, the extremity or frequency of a attitude, belief, behavior, etc.
 
-2. Inspect the best model using coef(), plotting functions and goodness-of-fit functions (see the according slide and cheat sheet). The model fit statistics show that Car_36 and Car_25 showed the highest discrimination. A number of self-concept in science items had a low discrimination, notably Self_31, Self_22, Self_19 and Self_35. The difficulty estimates for the categories for these items indicate that they are relatively easy for most of the sample. 
+### IRT coefficients
 
-The category probability curves were examined for the items with the highest discriminations (i.e., Car_36, Car_32, Car_25, Des_33, Car_18, Car_30). Most items yielded unique peaks for each category, with the exception of Car_30, where Category 4 was buried between 3 and 5. The unique range of the construct captured by the curves for the middle categories of the rating scale were only moderately pronounced. Across all items, the middle categories covered a focal range of the latent construct from approximately theta = - 2.0 to .5, indicating that these categories were capable of discriminating between students with lower levels of the construct. The plot for the category item difficulties also showed that these items all had the same approximate difficulties for the categories. 
+Inspect the best model using coef(), plotting functions and goodness-of-fit functions (see the according slide and cheat sheet). 
 
-The trace plots for the rest of the items were also examined, and a general deficiency was observed for categories 2 and 4. There either needs to be fewer categories in the rating scale or the categories need to be better defined in the item prompts.  The expected item scoring curves were also examined. Notable was that the discrimination for all of the self items was quite poor. This might suggest that these items should be utilized as their own measure, which would make sense given the content of the items, but would differ from the results that emerged in the CFA analyses. The information provided by these items was also quite poor. In addition, the information provided by Des_17, Des_21, Des_24, and Des_26 was also poor.  
-
-```{r, mirt.2, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+```{r, mirt.a, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
 as.data.frame(coef(model_2pl, IRTparms = T, simplify = TRUE)) %>%
   rename(discrimination = items.a1,
          difficulty_cat1_2345 = items.d1,
@@ -245,23 +257,14 @@ as.data.frame(coef(model_2pl, IRTparms = T, simplify = TRUE)) %>%
   arrange(-discrimination) %>%
   kable(digits = 2, format="html", caption="Item IRT Parameters", escape = F) %>%
     kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+```
 
+Results are sorted by the discrimination parameter in ascending order. This is useful as, the discrimination parameter is associated with the steepness of the CRCs. As such, items with lower discriminations (i.e., < 1), imply mixing of individuals who respond with scores “1” vs. “2” or “2” vs. “3," etc. Items with discrimination < 1 are typically to be less informative, which can be seen in the plots of the CRC and information curves below Because information is inversely related to standard error, these items are also considered to be poor fits to the GRM model. The following items all show a discrimination parameter < 1: Car_16, Des_24, Car_28, Des_17, Des_26, Des_21, Self_31, Self_22, Self_19, Self_35, and Self_27. 
+
+### Item difficulty plot
+```{r, mirt.b, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
 # plot the average observed vs. expected curve
-plot(model_2pl, type = 'score', MI=100)
-
-# Plot the category probability curves for highest discriminations
-p.36 <- itemplot(model_2pl, "Car_36", type = 'infotrace')
-p.36
-p.32 <- itemplot(model_2pl, "Car_32", type = 'infotrace')
-p.32
-p.25 <- itemplot(model_2pl, "Car_25", type = 'infotrace')
-p.25
-p.33 <- itemplot(model_2pl, "Des_33", type = 'infotrace')
-p.33
-p.18 <- itemplot(model_2pl, "Car_18", type = 'infotrace')
-p.18
-p.30 <- itemplot(model_2pl, "Car_30", type = 'infotrace')
-p.30
+# plot(model_2pl, type = 'score', MI=100)
 
 # coef(model_1pl_fixed, simplify = TRUE) 
 irtParms_model_2pl <- coef(model_2pl, IRTpars = TRUE, simplify = TRUE) 
@@ -283,18 +286,41 @@ ggplot(irtParms_model_2pl_long, aes(x = items, y = value, color = param, group =
        x = "Items",
        y = "Category Difficulty",
        color = "Categories")
+```
+Results pertaining to the spread of the item difficulty parameters both within and across items is informative. The following items are among the most difficult in the measure: Car_28, Des_17 Des_21 and Self_19. The easiest items to endorse appeared to be: Des_26, Self_19, Self_22, and Self_27. Another notable pattern in observed in the plot is the spread of the item difficulty calibrations for the self-concept in science items, which are all quite wide. 
 
-# plot trace lines for all items
-plot(model_2pl, type = 'trace')
+### Category response curves
 
-# plot the item score for all items
-plot(model_2pl, type = "itemscore", facet_items = TRUE) 
+Next, the category response curves are examined, looking for overlap in category curves, as well as plateaus in the information curves. 
 
-# plot the information curves for each item
-plot(model_2pl, type = "infotrace", facet_items = T) 
-```  
+```{r, mirt.crc, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+# table for reference
+item.ref %>%
+   kable(digits = 2, format="html", caption="Item Labels and Reference Numbers", escape = F) %>%
+    kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
 
-3. How well do these models fit the data, and do the items appear to behave well given the selected itemtypes? The `M2()` function is used to assess global model fit, while the `itemfit()` in a piece-wise assessment of fit to discover where the model is misfitting. The `itemfit()` reports (Kang and Chen's (2007) Generalized S-X^2 Item-Fit Index)[http://files.eric.ed.gov/fulltext/ED510479.pdf]. In addition, the `p.adjust()` function with argument `method="fdr"` to correct for multiple testing of the itemfit() function.   
+# create fucntion to plot combined CRC and inforamtion 
+plotCRC<-function(i){
+itemplot(model_2pl, i, type = 'infotrace')
+}
+
+# plot all items using the function
+lapply(colnames(items)[-1], plotCRC)
+```
+
+In examining the plots results showed that: 
+
+* The following items showed the best category response curves, which were all marked by unique peaks for each category: (1)Des_24, (6)Des_29, (7)Des_33, (9)Car_18, (10)Car_20, (11)Car_23, (12)Car_25, (15)Car_32, (17)Car_36
+  
+  * In general, most of these items showed information curves that peaked between theta levels of -3.75 to 1.15, with theta levels outside that range measured with decreased precision. This is a result indicating that these items measures low to average levels of science interest with a moderate to high degree of precision. 
+  
+  * Many of the information curves for these items show a plateau that cross-cuts several response categories. This result indicates that while the category response categories show unique peaks, overlapping responses between two audience groups at that ability level are not clearly defined by the categories in the rating scale that fall within that range of science interest, and might suggest that some categories could be collapsed without notable loss in the measurement properties of these items. In general, there are likely too many categories in the rating scale. 
+  
+* Other items exhibited poor category response curves, and these included: (2)Des_17, (3)Des_21, (5)Des_26, (18)Self_19, (19)Self_22, (20)Self_27, (21)Self_31, (22)Self_22. Notice that all of the self-concept items have poor category response and information curves. For many of these CRCs, categories in the response scale are burried under others rating scale curves, which suggests the rating scale is not functioning as expected for these items. Further, the information curves for many of these items were low and flat. This suggests that around this θ, there exists a net transition from k − 1 → k + 1, where participants are not very likely to respond with score k. Such a merger suggests overlapping responses between two audience groups at that ability level. This is another indicator of a rating scale with too many categories, which could be caused by a number of factors in how the rating scale is worded or how it aligns with the content of the questions.
+
+### Model fit 
+
+How well do these models fit the data, and do the items appear to behave well given the selected itemtypes? The `M2()` function is used to assess global model fit, while the `itemfit()` in a piece-wise assessment of fit to discover where the model is misfitting. The `itemfit()` reports (Kang and Chen's (2007) Generalized S-X^2 Item-Fit Index)[http://files.eric.ed.gov/fulltext/ED510479.pdf]. In addition, the `p.adjust()` function with argument `method="fdr"` to correct for multiple testing of the itemfit() function.   
 
 Criteria for evaluating overall model fit:
 
@@ -303,8 +329,6 @@ Criteria for evaluating overall model fit:
 - SRMR <= .05
 
 - Non-significant M2 statistic
-
-Results for the global model fit showed that the model fit could be improved. The M2 value was significant. The SRMR was also above was also > .05. However, the RMSEA2 value was < 0.092. The piece-wise examination of the fit of the items using the S-X^2 statistic showed that Car_28 potentially misfit. In examining the probability of category utilization table for the item, it appears like most people are utilizing the first and second category. The observed vs. expected values were also examined at several points along the continuum of the estimated thetas. Some misfit was observed (i.e., zstd values 1.96) for those with low levels of the latent trait, as well as those with slightly above average levels of the trait. 
 
 ```{r, mirt.3, message=FALSE, warning=FALSE, tidy=TRUE}
 # Global fit ---
@@ -320,7 +344,7 @@ sqrt((M2_2PL$M2[1]-M2_2PL$df[1])/(477*M2_2PL$df[1]))
 items.na <- na.omit(items) # df w/out missing
 
 # refit feeding the parameter estiamtes from original model 
-model_2pl.na <- mirt(items.na[-1], mirt_2pl, itemnames = c(colnames(items.na[-1])),
+model_2pl.na <- mirt(items.na[-1], 1, itemnames = c(colnames(items.na[-1])),
                   itemtype = 'graded', 
                   pars=mod2values(model_2pl), TOL=NaN)
 
@@ -335,34 +359,30 @@ itemfit_2pl <- itemfit(model_2pl, impute = 100)
 
 # sort the item fit statistics by p-value
 itemfit_2pl %>%
-  slice(24:45) %>% 
+  slice(1:22) %>% 
   arrange(p.S_X2) %>%
   kable(digits = 2, format="html", caption="Item Fit Statistics", escape = F) %>%
     kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
 
-# examining Car_28
-p.28 <- itemplot(model_2pl, "Car_28", type = 'trace')
-p.28
-
-# exmaine the category utilization for Car_28
-pre.per %>%
-  filter(item=="Car_28")
-
-# Observed vs. expected plots for category utilization
-items.na <- na.omit(items) # df w/out missing
-
 # refit feeding the parameter estiamtes from original model 
-model_2pl.na <- mirt(items.na[-1], mirt_2pl, itemnames = c(colnames(items.na[-1])),
+model_2pl.na <- mirt(items.na[-1], 1, itemnames = c(colnames(items.na[-1])),
                   itemtype = 'graded', 
                   pars=mod2values(model_2pl), TOL=NaN)
-itemfit_Car_32 <- itemfit(model_2pl.na, empirical.plot=13) # Car_28 (misfit Cat2 and Cat3)
+
+# Car_28 (misfit Cat2 and Cat3)
+itemfit_Car_32 <- itemfit(model_2pl.na, empirical.plot=13) 
 itemfit_Car_32
 
 # examine the observed vs. expected values looking for ZSTD with absolute value 1.96. 
 itemfit(model_2pl, empirical.table = 13)
 ```
+Results for the global model fit showed that the model fit could be improved. The M2 value was significant. The SRMR was also above was also > .05. However, the RMSEA2 value was < 0.092. This is coroberated by what was observed above with the items that showed discrimination parameters < 1. 
 
-4. Examine information, SEM, and reliability for the whole measure. The plots show that the measure captures the most information from theta -2 to +2. No surprise that SEM was lowest in this range. Reliability was highest between -4 to 2.25. 
+The piece-wise examination of the fit of the items using the S-X^2 statistic showed that Car_28 potentially misfit. In examining the probability of category utilization table for the item, it appears like most people are utilizing the first and second category. The observed vs. expected values were also examined at several points along the continuum of the estimated thetas. Some misfit was observed (i.e., zstd values 1.96) for those with low levels of the latent trait, as well as those with slightly above average levels of the trait. It should be noted that item fit within the IRT paradigm is best achieved through looking at a constellation of information. 
+
+### Reliability and SEM 
+
+Examine information, SEM, and reliability for the whole measure.
 
 ```{r, mirt.4, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
 # examine test information
@@ -382,34 +402,467 @@ plot(model_2pl, type='SE', MI=100)
 plot(model_2pl, type='rxx', MI=100)
 ```
 
-# Factor scores vs Standardized total scores 
+The plots show that the measure captures the most information from theta -2 to +2. No surprise that SEM was lowest in this range. Reliability was highest between -4 to 2.25. 
 
-```{r}
+### Factor scores vs Standardized total scores 
+
+```{r, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
 # Factor scores vs Standardized total scores 
-fs <- as.vector(fscores(model_2pl.na, method = "WLE")) 
+fs <- as.vector(fscores(model_2pl.na, method = "WLE", full.scores = TRUE)) 
 sts <- as.vector(scale(apply(na.omit(items)[-1], 1, sum))) 
-plot(fs ~ sts) 
-thetas <- fscores(model_2pl, method = "EAP")
-hist(thetas)
+fscore_plot_dat <- as_data_frame(cbind(fs, sts))
 
+ggplot(fscore_plot_dat, aes(x=sts, y=fs)) + 
+  geom_point()+
+  geom_smooth()
 
+# histogram of theta
+ggplot(fscore_plot_dat, aes(fscore_plot_dat$fs)) + geom_histogram(bins=50)
+
+```
+
+Results showed that there was a linear association between total scores and IRT scores, with IRT scores that show a normal distribution and the presence of a potentially few outliers that could be examined more fully with person fit statistics, and potentially removed from later analyses. 
+
+### Summary
+
+Results show that the overall GRM model does not adequately fit the data. Serveral potentail reasons were observed for this, but most notably, 8-items (i.e., 36%) had low discrimination and information (i.e., (2)Des_17, (3)Des_21, (5)Des_26, (18)Self_19, (19)Self_22, (20)Self_27, (21)Self_31, (22)Self_22). Not all of the misfitting items were deemed as misfitting with the S-X2 statistic. However, this statistic can be sensitive to sample size. Removing these items from the measure could improve overall model fit, and might be practical given the low information provided by these items. Further, several of the items, including even those items that fit the data, showed category response curves which suggested that catgories (i.e., 2,3,4) could be collapsed in the rating scale, a result indicating that the rating scale is likely not functioning as intended for these items. The presence of all the self-concept items misfitting was also interesting. Conceptually, these seem like more distinct items, and it might be worthy to examine them as a seperate measure. 
+
+# Subscale Approach
+
+NOTE. Should run a dimensionality test. 
+
+## Item subscale descriptives
+
+Examine the item descriptives for self concept measure. 
+```{r, subscales.descriptives, message=FALSE, warning=FALSE, tidy=TRUE, echo=FALSE}
+# easy item descriptive statistics from the 'ltm' package
+colnames(items)
+self.descriptives <- descript(items[19:23], chi.squared = TRUE, B = 1000) # self-concept
+desire.descriptives <- descript(items[2:8], chi.squared = TRUE, B = 1000) # desire
+career.descriptives <- descript(items[9:18], chi.squared = TRUE, B = 1000) # career interest
+```
+
+```{r, subscales.descriptives.self, message=FALSE, warning=FALSE, tidy=TRUE, echo=FALSE, results='asis'}
+# histogram of subscale total
+total.self <- rowSums(items[19:23])
+histogram(~total.self, breaks=25)
+
+# self-concept alpha 
+as_data_frame(self.descriptives$alpha) %>%
+  mutate(Item = c("All Items", colnames(items)[19:23])) %>%
+  dplyr::select(Item, value) %>%
+  kable(digits = 2, format="html", caption="Self-Concept Alpha for Pre-Administration 
+        Period", escape = F) %>%
+    kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+```
+Results showed that the total scores for the measure were not normally distributed. Alpha statistics for the total measure and items-if-removed, were all generally around .70. 
+
+Examine the item descriptives for desire to do science measure. 
+```{r, subscales.descriptives.desire, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+# histogram of subscale total
+total.desire <- rowSums(items[2:8])
+histogram(~total.desire, breaks=25)
+
+# self-concept alpha 
+as_data_frame(desire.descriptives$alpha) %>%
+  mutate(Item = c("All Items", colnames(items)[2:8])) %>%
+  dplyr::select(Item, value) %>%
+  kable(digits = 2, format="html", caption="Desire to do Science Alpha for Pre-Administration 
+        Period", escape = F) %>%
+    kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+```
+Results showed a long left-side tail. Alphas for the measure were generally around .80. 
+
+Examine the item descriptives for career interest in science measure.  
+```{r, subscales.descriptives.career, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+# histogram of subscale total
+total.career <- rowSums(items[9:18])
+histogram(~total.career, breaks=25)
+
+# self-concept alpha 
+as_data_frame(career.descriptives$alpha) %>%
+  mutate(Item = c("All Items", colnames(items)[9:18])) %>%
+  dplyr::select(Item, value) %>%
+  kable(digits = 2, format="html", caption="Career Interest in Science Alpha for Pre-Administration 
+        Period", escape = F) %>%
+    kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+```
+Results for the distribution of total scores were not normally distributed, and alpha statistics were generally around .90. 
+
+## Testing for best fitting model 
+
+Set up models to run in `mirt`. 
+```{r, mirt.subscale, message=FALSE, warning=FALSE, tidy=FALSE}
+# define the number of cores for quicker processing 
+mirtCluster(5)
+
+# MIRT syntax for 1-PLish model with fixed discrimination 
+
+mod.syntax_1pl_fixed_self <- '
+THETA=1,2,3,4,5
+CONSTRAIN = (1,2,3,4,5,a1)
+COV = THETA*THETA
+'
+
+mod.syntax_1pl_fixed_desire <- '
+THETA=1,2,3,4,5,6,7
+CONSTRAIN = (1,2,3,4,5,6,7,a1)
+COV = THETA*THETA
+'
+
+mod.syntax_1pl_fixed_career <- '
+THETA=1,2,3,4,5,6,7,8,9,10
+CONSTRAIN = (1,2,3,4,5,6,7,8,9,10,a1)
+COV = THETA*THETA
+'
+
+# run the mirt 1-PLish model for self-concept in science
+items.self <- dplyr::select(items, 1, 19:23)
+model_1pl_fixed_self <- mirt(items.self[-1], mod.syntax_1pl_fixed_self, itemnames = 
+                        c(colnames(items.self[-1])), 
+                        itemtype = 'graded', 
+                        technical = list(removeEmptyRows=TRUE, parallel=TRUE), # self
+                        verbose = FALSE,
+                        empiricalhist = TRUE, 
+                        SE = TRUE, SE.type = 'sandwich')
+summary(model_1pl_fixed_self)
+# run the mirt 1-PLish model for desire in science
+items.desire <- dplyr::select(items, 1, 2:8)
+model_1pl_fixed_desire <- mirt(items.desire[-1], mod.syntax_1pl_fixed_desire, itemnames = 
+                        c(colnames(items.desire[-1])), 
+                        itemtype = 'graded', 
+                        technical = list(removeEmptyRows=TRUE, parallel=TRUE), # desire
+                        empiricalhist = TRUE,
+                        SE = TRUE, SE.type = 'sandwich',
+                        verbose = FALSE)
+summary(model_1pl_fixed_desire)
+# run the mirt 1-PLish model for career interest in science
+items.career <- dplyr::select(items, 1, 9:18)
+model_1pl_fixed_career <- mirt(items.career[-1], mod.syntax_1pl_fixed_career, itemnames = 
+                        c(colnames(items.career[-1])), 
+                        itemtype = 'graded', 
+                        technical = list(removeEmptyRows=TRUE, parallel=TRUE), # career interest
+                        empiricalhist = TRUE,
+                        SE = TRUE, SE.type = 'sandwich',
+                        verbose = FALSE)
+summary(model_1pl_fixed_desire)
 # run the mirt 2-PL GSM model
-items_red <- dplyr::select(items, Des_17, Des_21, Des_24,
-                Des_26, Des_29, Des_33, Car_16,
-                Car_18, Car_20, Car_23, Car_25,
-                Car_28, Car_30, Car_32, 
-                Car_34, Car_36)
-model_2pl_edit <- mirt(items_red, 1, itemnames = c(colnames(items[-1])), 
+model_2pl_self <- mirt(items.self[-1], 1, itemnames = c(colnames(items.self[-1])), 
                   itemtype = 'graded', 
                   technical = list(removeEmptyRows=TRUE, parallel=TRUE), 
                   empiricalhist = TRUE, 
                   SE = TRUE, SE.type = 'sandwich',
                   verbose = FALSE)
-mods <- list(twoPL = model_2pl, twoPLRed = model_2pl_edit)
-itemplot(mods, 1, type = 'RE')
-itemplot(mods, 2, type = 'RE')
-itemplot(mods, 3, type = 'RE')
-plot(mods, type="infoSE")
+summary(model_2pl_self)
+# run the mirt 2-PL GSM model desire
+model_2pl_desire <- mirt(items.desire[-1], 1, itemnames = c(colnames(items.desire[-1])), 
+                  itemtype = 'graded', 
+                  technical = list(removeEmptyRows=TRUE, parallel=TRUE), 
+                  empiricalhist = TRUE, 
+                  SE = TRUE, SE.type = 'sandwich',
+                  verbose = FALSE)
+summary(model_2pl_desire)
+# run the mirt 2-PL GSM model career
+model_2pl_career <- mirt(items.career[-1], 1, itemnames = c(colnames(items.career[-1])), 
+                  itemtype = 'graded', 
+                  technical = list(removeEmptyRows=TRUE, parallel=TRUE), 
+                  empiricalhist = TRUE, 
+                  SE = TRUE, SE.type = 'sandwich',
+                  verbose = FALSE)
+summary(model_2pl_career)
+# run the mirt 2-PL GRSM model self
+model_2pl_grsm_self <- mirt(items.self[-1], 1, itemnames = c(colnames(items.self[-1])), 
+                  itemtype = 'grsmIRT', 
+                  technical = list(removeEmptyRows=TRUE, parallel=TRUE), 
+                  empiricalhist = TRUE, 
+                  SE = TRUE, SE.type = 'sandwich',
+                  verbose = FALSE)
+summary(model_2pl_grsm_self)
+# run the mirt 2-PL GRSM model desire
+model_2pl_grsm_desire <- mirt(items.desire[-1], 1, itemnames = c(colnames(items.desire[-1])), 
+                  itemtype = 'grsmIRT', 
+                  technical = list(removeEmptyRows=TRUE, parallel=TRUE), 
+                  empiricalhist = TRUE, 
+                  SE = TRUE, SE.type = 'sandwich',
+                  verbose = FALSE)
+summary(model_2pl_grsm_desire)
+# run the mirt 2-PL GRSM model career
+model_2pl_grsm_career <- mirt(items.career[-1], 1, itemnames = c(colnames(items.career[-1])), 
+                  itemtype = 'grsmIRT', 
+                  technical = list(removeEmptyRows=TRUE, parallel=TRUE), 
+                  empiricalhist = TRUE, 
+                  SE = TRUE, SE.type = 'sandwich',
+                  verbose = FALSE)
+summary(model_2pl_grsm_career)
+# run the mirt 2-PL GPCM model self
+model_2pl_gpcm_self <- mirt(items.self[-1], 1, itemnames = c(colnames(items.self[-1])), 
+                  itemtype = 'gpcmIRT', 
+                  technical = list(removeEmptyRows=TRUE, parallel=TRUE), 
+                  empiricalhist = TRUE, 
+                  SE = TRUE, SE.type = 'sandwich',
+                  verbose = FALSE)
+summary(model_2pl_gpcm_self)
+# run the mirt 2-PL GPCM model desire
+model_2pl_gpcm_desire <- mirt(items.desire[-1], 1, itemnames = c(colnames(items.desire[-1])), 
+                  itemtype = 'gpcmIRT', 
+                  technical = list(removeEmptyRows=TRUE, parallel=TRUE), 
+                  empiricalhist = TRUE, 
+                  SE = TRUE, SE.type = 'sandwich',
+                  verbose = FALSE)
+summary(model_2pl_gpcm_desire)
+# run the mirt 2-PL GPCM model career
+model_2pl_gpcm_career <- mirt(items.career[-1], 1, itemnames = c(colnames(items.career[-1])), 
+                  itemtype = 'gpcmIRT', 
+                  technical = list(removeEmptyRows=TRUE, parallel=TRUE), 
+                  empiricalhist = TRUE, 
+                  SE = TRUE, SE.type = 'sandwich',
+                  verbose = FALSE)
+summary(model_2pl_gpcm_career)
 
+# BIC statistics for self-concept in science 
+self.bic <- tibble(
+  model_2pl_gpcm_self = model_2pl_gpcm_self@Fit$BIC,
+  model_2pl_grsm_self = model_2pl_grsm_self@Fit$BIC,
+  model_2pl_graded_self = model_2pl_self@Fit$BIC,
+  model_1pl_fixed_self = model_1pl_fixed_self@Fit$BIC)%>%
+  gather(key, BIC)%>%
+  arrange(BIC)
+self.bic
+
+# BIC statistics for desire to do science
+desire.bic <- tibble(
+  model_2pl_gpcm_desire = model_2pl_gpcm_desire@Fit$BIC,
+  model_2pl_grsm_desire = model_2pl_grsm_desire@Fit$BIC,
+  model_2pl_graded_desire = model_2pl_desire@Fit$BIC,
+  model_1pl_fixed_desire = model_1pl_fixed_desire@Fit$BIC)%>%
+  gather(key, BIC)%>%
+  arrange(BIC)
+desire.bic
+
+# BIC statistics for career interest in science
+career.bic <- tibble(
+  model_2pl_gpcm_career = model_2pl_gpcm_career@Fit$BIC,
+  model_2pl_grsm_career = model_2pl_grsm_career@Fit$BIC,
+  model_2pl_graded_career = model_2pl_career@Fit$BIC,
+  model_1pl_fixed_career = model_1pl_fixed_career@Fit$BIC)%>%
+  gather(key, BIC)%>%
+  arrange(BIC)
+career.bic
 ```
+
+Results showed that the graded response model fit the data best for all subscales. 
+
+## Self-concept
+
+### IRT coefficients
+Inspect the best model using coef(), plotting functions and goodness-of-fit functions. 
+
+```{r, mirt.a.self, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+as.data.frame(coef(model_2pl_self, IRTparms = T, simplify = TRUE)) %>%
+  rename(discrimination = items.a1,
+         difficulty_cat1_2345 = items.d1,
+         difficulty_cat12_345 = items.d2,
+         difficulty_cat123_45 = items.d3,
+         difficulty_cat1234_5 = items.d4) %>%
+  mutate(Item = colnames(items.self)[-1]) %>%
+  dplyr::select(Item, discrimination, difficulty_cat1_2345, difficulty_cat12_345, 
+         difficulty_cat123_45, difficulty_cat1234_5) %>%
+  arrange(-discrimination) %>%
+  kable(digits = 2, format="html", caption="Item IRT Parameters", escape = F) %>%
+    kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+```
+Results showed that the discrimination parameters were all > 1 for all items. 
+
+### Item difficulty 
+```{r, mirt.b.self, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+# plot the average observed vs. expected curve
+# plot(model_2pl, type = 'score', MI=100)
+
+# coef(model_1pl_fixed, simplify = TRUE) 
+irtParms_model_2pl_self <- coef(model_2pl_self, IRTpars = TRUE, simplify = TRUE) 
+irtParms_model_2pl_self <- as.data.frame(irtParms_model_2pl_self$items)
+irtParms_model_2pl_self <- cbind(irtParms_model_2pl_self, items = colnames(items.self[-1])) 
+
+# convert wide to long
+irtParms_model_2pl_long_self <- irtParms_model_2pl_self %>%
+  gather(param, value, -items) %>%
+  slice(6:25)
+
+# plot the difficulties
+ggplot(irtParms_model_2pl_long_self, aes(x = items, y = value, color = param, group = param)) + 
+  geom_point()  + 
+  theme_minimal() + scale_color_calc() + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  labs(title = "Category difficulties", 
+       subtitle = "1-PL Graded Response Model with fixed discriminiation",
+       x = "Items",
+       y = "Category Difficulty",
+       color = "Categories")
+```
+
+Results showed that Self_19 had both the highest and lowest item difficulty calpbrations. The range and spread of difficulty calibrations for subsequent items were similar.
+
+### Category response curves 
+
+Next, the category response curves are examined, looking for overlap in category curves, as well as plateus in the information curves. 
+
+```{r, mirt.crc, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+# table for reference
+tibble(
+  Item = colnames(items.self)[-1],
+  Number = 1:5) %>%
+  kable(digits = 2, format="html", caption="Item Labels and Reference Numbers", escape = F) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+
+# create fucntion to plot combined CRC and inforamtion 
+plotCRC_self <-function(i){
+itemplot(model_2pl_self, i, type = 'infotrace')
+}
+
+# plot all items using the function
+lapply(colnames(items.self)[-1], plotCRC_self)
+```
+Results show an improvement in terms of information provided by the items when compared to their use within the 22-item measure, as each item showed information curves with improved heights. However, like the full 22-item measure, the CRCs, taken in conjunction with regions of the information curves that show plateaus, suggest that some categories in the rating scale could be collapsed. 
+
+### Model fit
+Model and item fit. Note, the M2 statistic, and assocaited model fit statistics were not provided because degrees of freedom were too low. This problem is likely easily fixed if additional items were to be included in the measure. 
+```{r, mirt.self.2, message=FALSE, warning=FALSE, tidy=TRUE}
+# Piecewise misfit ---
+
+# item fit statistics 
+itemfit_2pl_self <- itemfit(model_2pl_self, impute = 100) 
+
+# apply a false discovery rate to the p-value 
+# p.fdr <- p.adjust(itemfit_2pl$p.S_X2,"BH")
+# itemfit_2pl <- cbind(itemfit_2pl, p.fdr) # bind to previous work
+
+# sort the item fit statistics by p-value
+itemfit_2pl_self %>%
+  slice(1:5) %>% 
+  arrange(p.S_X2) %>%
+  kable(digits = 2, format="html", caption="Item Fit Statistics", escape = F) %>%
+    kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+```
+
+Results showed that Self_35 and Self_27 both significantly misfit the model. However, based on the CRC plots above it is not clear why these items misfit. However, histograms for these models show that most students seem to endorse the highest category in the rating scale. The observed vs. expected plots showed that for Car_27 there appeared to be some misfit in the middle categories of the rating scale, while for item Car_35 categories 3, 4, and 5 seemed to misfit the data. Taken in conjunction with the plateaus observed in the information and trace plots above, these results might suggest that model fit is improved if categories in the rating scale are collapsed. 
+
+```{r, mirt.self.plots, message=FALSE, warning=FALSE, tidy=TRUE}
+# histograms
+hist(items.self$Self_27)
+hist(items.self$Self_35)
+
+# Observed vs. expected plots for category utilization
+items.self.na <- na.omit(items.self) # df w/out missing
+
+# refit feeding the parameter estiamtes from original model 
+model_2pl.self.na <- mirt(items.self.na[-1], 1, itemnames = c(colnames(items.self.na[-1])),
+                  itemtype = 'graded', 
+                  pars=mod2values(model_2pl_self), TOL=NaN)
+
+# Observed vs. expected plot self_27
+itemfit_Self_27 <- itemfit(model_2pl.na, empirical.plot=3) # Car_28 (misfit Cat2 and Cat3)
+itemfit_Self_27
+
+# Observed vs. expected plot self_35
+itemfit_Self_35 <- itemfit(model_2pl.na, empirical.plot=5) # Car_28 (misfit Cat2 and Cat3)
+itemfit_Self_35
+```
+
+### Reliability and SEM 
+
+Examine information, SEM, and reliability for the whole measure.
+
+```{r, mirt.4, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+# examine test information
+info_model_2pl_self <- tibble(
+  theta = seq(-6,6,.01),
+  information = testinfo(model_2pl_self, theta),
+  error = 1/sqrt(information),
+  reliability = information/(information+1))
+
+# plot test information
+plot(model_2pl_self, type='info', MI=100)
+
+# plot SEM
+plot(model_2pl_self, type='SE', MI=100)
+
+# plot alpha at theta levels
+plot(model_2pl_self, type='rxx', MI=100)
+```
+
+Results showed that information for the measure was maximized between theta -3 and 0 (i.e., below average and average science interest). Not surprisingly, standard errors are miniminzed and reliabilities were maximized in this range. 
+
+### Factor scores vs Standardized total scores 
+
+```{r, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+# Factor scores vs Standardized total scores 
+fs_self <- as.vector(fscores(model_2pl.self.na, method = "WLE", full.scores = TRUE)) 
+sts_self <- as.vector(scale(apply(na.omit(items.self)[-1], 1, sum))) 
+fscore_plot_dat_self <- as_data_frame(cbind(fs_self, sts_self))
+
+# plot it
+ggplot(fscore_plot_dat_self, aes(x=sts_self, y=fs_self)) + 
+  geom_point()+
+  geom_smooth()
+
+# histogram of theta
+ggplot(fscore_plot_dat_self, aes(fscore_plot_dat_self$fs_self)) + geom_histogram(bins=50)
+```
+
+Results show a ceiling effect in the irt scores, as several students have indicated the highest score possible for the measure (i.e., a ceiling effect).  
+
+###Summary
+
+Results suggest items that generally fit the data, but would likely be improved if categories in the rating scale were collapsed. 
+
+## Desire to do science
+
+### IRT coefficients
+Inspect the best model using coef(), plotting functions and goodness-of-fit functions. 
+
+```{r, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+as.data.frame(coef(model_2pl_desire, IRTparms = T, simplify = TRUE)) %>%
+  rename(discrimination = items.a1,
+         difficulty_cat1_2345 = items.d1,
+         difficulty_cat12_345 = items.d2,
+         difficulty_cat123_45 = items.d3,
+         difficulty_cat1234_5 = items.d4) %>%
+  mutate(Item = colnames(items.desire)[-1]) %>%
+  dplyr::select(Item, discrimination, difficulty_cat1_2345, difficulty_cat12_345, 
+         difficulty_cat123_45, difficulty_cat1234_5) %>%
+  arrange(-discrimination) %>%
+  kable(digits = 2, format="html", caption="Item IRT Parameters", escape = F) %>%
+    kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+```
+Results showed that two items, Des_26 and Des_21 had discrimination parameters < 1, which is an indication that these items might not fit the model well. 
+
+### Item difficulty plot
+```{r, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+# plot the average observed vs. expected curve
+# plot(model_2pl, type = 'score', MI=100)
+
+# coef(model_1pl_fixed, simplify = TRUE) 
+irtParms_model_2pl_desire <- coef(model_2pl_desire, IRTpars = TRUE, simplify = TRUE) 
+irtParms_model_2pl_desire <- as.data.frame(irtParms_model_2pl_desire$items)
+irtParms_model_2pl_desire <- cbind(irtParms_model_2pl_desire, items = 
+                                     colnames(items.desire[-1])) 
+# convert wide to long
+irtParms_model_2pl_long_desire <- irtParms_model_2pl_desire %>%
+  gather(param, value, -items) %>%
+  slice(8:35)
+
+# plot the difficulties
+ggplot(irtParms_model_2pl_long_desire, aes(x = items, y = value, 
+                                           color = param, group = param)) + 
+  geom_point()  + 
+  theme_minimal() + scale_color_calc() + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  labs(title = "Category difficulties", 
+       subtitle = "1-PL Graded Response Model with fixed discriminiation",
+       x = "Items",
+       y = "Category Difficulty",
+       color = "Categories")
+```
+
+Among the items in the desire to do science items, 
 
