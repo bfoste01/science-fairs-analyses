@@ -1,0 +1,422 @@
+---
+title: "Item Response Models Science Interest Measure (Post-Fair Exposure Period)"
+author: "Brandon Foster, Ph.D."
+date: "`r format(Sys.time(), '%d %B, %Y, %H:%M')`"
+output:
+  html_document:
+    theme: paper
+    toc: true
+    toc_float: true
+---
+
+# Introduction
+
+The following document explores the psychometric properties of the Science Interest Measure using a graded-response modeling (GSM). GSM is ideal for items with clear underlying response continuum (i.e., ordered categorical likert response). GMS models the probability of any given response category or higher (i.e., “cumulative logit model”), where the rating scale is split up into a series of binary categories (i.e., 0 vs. 1,2,3 | 0, 1 vs. 2,3, | 0, 1, 2 vs. 3 |, etc.). As a measurement model, transformed item responses are postdicted using properties of persons (i.e., Theta) and properties of items (i.e., difficulty and discrimination). Two types of graded response models are considered in the analyses that follow. In the first the discrimination parameter is estimated, but considered fixed across items, which is analogous to a 1-PL pseudo 1-PL model. As a contrast, the Andrich rating scale model fixes the discrimination at 1 across all items. In the second set of GSM, the discrimination parameter is allowed to vary across items. 
+
+# Data Screeining 
+
+First, let's bring in the data and munge it appropriately. 
+```{r, import, message=FALSE, warning=FALSE, tidy=TRUE}
+# Set working directory ----
+#setwd("/Users/bfoster/Desktop/2017-edc/science-fairs-analyses")
+# Load packaes ----
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(psych, ggplot2, ggalt, ggthemes, 
+    readr, dplyr, knitr, scales, pander, kableExtra, stringr, scales,
+    mirt, ltm, tidyverse, formattable, gridExtra)
+
+# Import the data ----
+joined.dat <- readRDS(file = "../data/joined.dat")
+
+# Munge data ----
+items <- joined.dat %>%
+  dplyr::select(StudentID, s_postInt_Des_15, s_postInt_Des_17, s_postInt_Des_21, 
+                s_postInt_Des_24,
+                s_postInt_Des_26, s_postInt_Des_29, s_postInt_Des_33, s_postInt_Car_16,
+                s_postInt_Car_18, s_postInt_Car_20, s_postInt_Car_23, s_postInt_Car_25,
+                s_postInt_Car_28, s_postInt_Car_30, s_postInt_Car_32, 
+                s_postInt_Car_34, s_postInt_Car_36, s_postInt_Self_19, s_postInt_Self_22, 
+                s_postInt_Self_27, s_postInt_Self_31 ,s_postInt_Self_35) %>%
+  rename_(.dots=setNames(names(.), gsub("s_postInt_", "", names(.))))
+
+# munge the variable names to remove post_ and post_ postfixes
+items.stringr.prune <- items %>% 
+    dplyr::mutate(
+      Des_15 = Des_15 - 1, 
+      Des_17 = Des_17 - 1,
+      Des_21 = Des_21 - 1,
+      Des_24 = Des_24 - 1, 
+      Des_26 = Des_26 - 1,
+      Des_29 = Des_29 - 1,
+      Des_33 = Des_33 - 1,
+      Car_16 = Car_16 - 1,
+      Car_18 = Car_18 - 1,
+      Car_20 = Car_20 - 1,
+      Car_23 = Car_23 - 1,
+      Car_25 = Car_25 - 1,
+      Car_28 = Car_28 - 1,
+      Car_30 = Car_30 - 1,
+      Car_32 = Car_32 - 1, 
+      Car_34 = Car_34 - 1,
+      Car_36 = Car_36 - 1,
+      Self_19 = Self_19 - 1,
+      Self_22 = Self_22 - 1, 
+      Self_27 = Self_27 - 1,
+      Self_31 = Self_31 - 1,
+      Self_35 = Self_35 - 1)
+
+# create dataframe for item reference
+item.ref <- tibble(
+  Item = colnames(items.stringr.prune)[-1],
+  Number = 1:22)
+```
+
+# Full measure
+
+## Item Descriptives
+
+The syntax below creates the item statistics using the `ltm` packages, and conducts all necessary munging for printing tables and plots. 
+
+```{r, descriptives.post, message=FALSE, warning=FALSE, tidy=TRUE}
+# easy item descriptive statistics from the 'ltm' package
+post.items.descriptives <- descript(items[-1], chi.squared = TRUE, 
+                                   B = 1000)
+# extract the proportions in each categoty
+post.per <- do.call(rbind, lapply((post.items.descriptives[2]), data.frame, 
+                                 stringsAsFactors=FALSE)) %>%
+  mutate(item = colnames(items.stringr.prune)[-1]) %>%
+         rename(Cat1 = X1, Cat2 = X2, Cat3 = X3, Cat4 = X4, Cat5 = X5) %>%
+  dplyr::select(item, Cat1, Cat2, Cat3, Cat4, Cat5)
+
+# convert to long for plotting 
+post.per.long <- gather(post.per, cat, value, -item) %>%
+  arrange(item)
+```
+
+### Analysis of mising data
+
+Let's look at the percent of missing responses for each item. A color bar has been added to the values in the table to compare the relative proportion missing per each item. 
+
+```{r, descriptives.1, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+# extract the proportions in each categoty
+do.call(rbind, lapply((post.items.descriptives[7]), data.frame, 
+                                 stringsAsFactors=FALSE)) %>%
+  rownames_to_column("Statistic") %>%
+  filter(Statistic=="missin.(%)") %>%
+  gather(item, value, -Statistic) %>% 
+  dplyr::select(item, value) %>%
+  rename(Percent = value, Item = item) %>% 
+  mutate("Percent Missing" = color_bar("lightgreen")((Percent/100)*100)) %>%
+  dplyr::select(Item, "Percent Missing") %>%
+  kable(digits = 2, format="html", caption="Category Utilization for post-Administration 
+        Period", escape = F) %>%
+    kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+```
+Results showed that Des_17, Des_33, and Car_32 had the highest percentage of missing data. However, missing data for these items generally amounted to 5%. 
+
+### Category utilization 
+
+Let's look at the table of the proportions of rating scale category utilization to see if anything looks aberrant.  
+
+```{r, descriptives.2, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+# print the table
+post.per %>%
+  rename(Item = item) %>%
+  kable(digits = 3, format="html", caption="Category Utilization for post-Administration 
+        Period") %>%
+    kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+```
+
+A visualization is provided for another perspective to examine category utilization.
+
+```{r, descriptives.3, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+# plot the proportions
+p_pl1_prop <- ggplot() + geom_bar(aes(y = value, x = item, fill = cat), 
+                                  data = post.per.long, stat="identity") +
+  ggtitle("Proportion of Category Utilization") + 
+  scale_fill_ptol() + theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) 
+p_pl1_prop
+```
+
+Both the table and figure show that for most items the utilization of the lower categories is low. This might pose problems downstream when the category probability curves are examined.
+
+### Distribution of total score
+A histogram of the total score is provided to examine whether the total score for the measure is normally distributed with no obvious ceiling or floor effects. 
+
+```{r, descriptives.4, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+total <- rowSums(items[-1])
+histogram(~total, breaks=10)
+```
+The figure shows a distribution with a slightly long left tail.  
+
+### Cronbach's alpha 
+
+Examine the CTT reliability statistics (i.e., alpha and alpha-if-removed for each item). 
+```{r, descriptives.5, message=FALSE, warning=FALSE, tidy=TRUE}
+# extract the proportions in each categoty
+item.names.alpa <- c("Total Alpha", colnames(items)[-1])
+do.call(rbind, lapply((post.items.descriptives[9]), data.frame, 
+                                 stringsAsFactors=FALSE)) %>%
+  mutate(Item = item.names.alpa) %>%
+  dplyr::select(Item, value) %>%
+  kable(digits = 2, format="html", caption="Alpha for post-Administration 
+        Period", escape = F) %>%
+    kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+```
+Alpha for the measure was very high. However, it should be noted that, while reviewers might like to see this statistic, [it is generally meaningless](https://link.springer.com/article/10.1007/s11336-008-9101-0). 
+
+## Fit the GSM models
+
+The syntax below fits both the 1-PLish and several variations of 2-PL models. The syntax block concludes by comparing the fit of one model versus the other in order to decide which model best fits the data, an thusly what model to utilize moving forward. Standard errors are calculated based on the sandwich covariance estimate, which was chosen to adjust for nesting in the data. 
+
+```{r, mirt.1, message=FALSE, warning=FALSE, tidy=TRUE}
+# define the number of cores for quicker processing 
+mirtCluster(5)  
+
+# MIRT syntax for 1-PLish model with fixed discrimination 
+mod.syntax_1pl_fixed <- '
+THETA=1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22
+CONSTRAIN = (1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,a1)
+COV = THETA*THETA
+'
+
+# make the MIRT model part 2
+mirt_1pl_fixed  <- mirt.model(mod.syntax_1pl_fixed) 
+
+# run the mirt 1-PLish model
+model_1pl_fixed <- mirt(items[-1], mirt_1pl_fixed, itemnames = 
+                        c(colnames(items[-1])), 
+                        itemtype = 'graded', 
+                        technical = list(removeEmptyRows=TRUE, parallel=TRUE), 
+                        empiricalhist = TRUE,
+                        SE = TRUE, SE.type = 'sandwich',
+                        verbose = FALSE)
+
+# MIRT syntax for 2-PL model with fixed discrimination 
+# mod.syntax_2pl <- '
+# THETA=1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22
+# COV = THETA*THETA
+# '
+
+# mirt_2pl <- mirt.model(mod.syntax_2pl) # make the MIRT model part 2
+
+# run the mirt 2-PL GSM model
+model_2pl <- mirt(items[-1], 1, itemnames = c(colnames(items[-1])), 
+                  itemtype = 'graded', 
+                  technical = list(removeEmptyRows=TRUE, parallel=TRUE), 
+                  empiricalhist = TRUE, 
+                  SE = TRUE, SE.type = 'sandwich',
+                  verbose = FALSE)
+
+# run the mirt 2-PL GRSM model
+model_2pl_grsm <- mirt(items[-1], 1, itemnames = c(colnames(items[-1])), 
+                  itemtype = 'grsmIRT', 
+                  technical = list(removeEmptyRows=TRUE, parallel=TRUE), 
+                  empiricalhist = TRUE, 
+                  SE = TRUE, SE.type = 'sandwich',
+                  verbose = FALSE)
+
+# run the mirt 2-PL GPCM model
+model_2pl_gpcm <- mirt(items[-1], 1, itemnames = c(colnames(items[-1])), 
+                  itemtype = 'gpcmIRT', 
+                  technical = list(removeEmptyRows=TRUE, parallel=TRUE), 
+                  empiricalhist = TRUE, 
+                  SE = TRUE, SE.type = 'sandwich',
+                  verbose = FALSE)
+
+# test the fit of 1 model vs. the other w/ BIC Table
+tibble(
+  model_2pl_gpcm = model_2pl_gpcm@Fit$BIC,
+  model_2pl_grsm = model_2pl_grsm@Fit$BIC,
+  model_2pl_graded = model_2pl@Fit$BIC,
+  model_1pl_fixed = model_1pl_fixed@Fit$BIC)%>%
+  gather(key, BIC)%>%
+  arrange(BIC)
+```
+Results for the comparison between models, using the `anova()` and the `M2()` functions, showed that  [Samejima's (1969)](https://www.psychometricsociety.org/sites/default/files/pdf/MN17.pdf) graded response model (GRM) was the best fitting for the data, and is utilized in subsequent model followup.
+
+### IRT coefficients
+
+Inspect the best model using coef(), plotting functions and goodness-of-fit functions (see the according slide and cheat sheet). 
+
+```{r, mirt.a, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+as.data.frame(coef(model_2pl, IRTparms = T, simplify = TRUE)) %>%
+  rename(discrimination = items.a1,
+         difficulty_cat1_2345 = items.d1,
+         difficulty_cat12_345 = items.d2,
+         difficulty_cat123_45 = items.d3,
+         difficulty_cat1234_5 = items.d4) %>%
+  mutate(Item = colnames(items)[-1]) %>%
+  dplyr::select(Item, discrimination, difficulty_cat1_2345, difficulty_cat12_345, 
+         difficulty_cat123_45, difficulty_cat1234_5) %>%
+  arrange(-discrimination) %>%
+  kable(digits = 2, format="html", caption="Item IRT Parameters", escape = F) %>%
+    kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+```
+
+Results are sorted by the discrimination parameter in ascending order. This is useful as, the discrimination parameter is associated with the steepness of the CRCs. As such, items with lower discriminations (i.e., < 1), imply mixing of individuals who respond with scores “1” vs. “2” or “2” vs. “3," etc. Items with discrimination < 1 are typically to be less informative, which can be seen in the plots of the CRC and information curves below Because information is inversely related to standard error, these items are also considered to be poor fits to the GRM model. The following items all show a discrimination parameter < 1: Car_34, Car_20, **Car_16**, Car_21, Self_27, **Des_26**, **Self_22**, **Self_31**, **Self_35**, and **Self_19**. 
+
+### Item difficulty plot
+```{r, mirt.b, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+# plot the average observed vs. expected curve
+# plot(model_2pl, type = 'score', MI=100)
+
+# coef(model_1pl_fixed, simplify = TRUE) 
+irtParms_model_2pl <- coef(model_2pl, IRTpars = TRUE, simplify = TRUE) 
+irtParms_model_2pl <- as.data.frame(irtParms_model_2pl$items)
+irtParms_model_2pl <- cbind(irtParms_model_2pl, items = colnames(items[-1])) 
+
+# convert wide to long
+irtParms_model_2pl_long <- irtParms_model_2pl %>%
+  gather(param, value, -items) %>%
+  slice(23:110)
+
+# plot the difficulties
+ggplot(irtParms_model_2pl_long, aes(x = items, y = value, color = param, group = param)) + 
+  geom_point()  + 
+  theme_minimal() + scale_color_calc() + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  labs(title = "Category difficulties", 
+       subtitle = "1-PL Graded Response Model with fixed discriminiation",
+       x = "Items",
+       y = "Category Difficulty",
+       color = "Categories")
+```
+Results pertaining to the spostad of the item difficulty parameters both within and across items is informative. The following items are among the most difficult in the measure: **Car_28**, **Des_21**, and **Self_19**. The easiest items to endorse appeared to be: **Des_26**, **Self_19**, **Self_22**, and Self_35. **Another notable pattern in observed in the plot is the spostad of the item difficulty calibrations for the self-concept in science items, which are all quite wide.** 
+
+### Category response curves
+
+Next, the category response curves are examined, looking for overlap in category curves, as well as plateaus in the information curves. 
+
+```{r, mirt.crc, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+# table for reference
+item.ref %>%
+   kable(digits = 2, format="html", caption="Item Labels and Reference Numbers", escape = F) %>%
+    kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+
+# create fucntion to plot combined CRC and inforamtion 
+plotCRC<-function(i){
+itemplot(model_2pl, i, type = 'infotrace')
+}
+
+# plot all items using the function
+lapply(colnames(items)[-1], plotCRC)
+```
+
+In examining the plots results showed that: 
+
+* Compared to students' responses to the pre-science fair exposure period, these CRCs show improvement in the peaks of the information curves, as well as more defined peaks for each category in the CRC. This suggests that students are potentially distinguishing their science interest more uniquely with the rating scale, and that the items themselves are providing a bit more information. However, the plateaus observed in the information curves still do suggest some mixing of the categories in the rating scale, which might suggest that a 4-category rating scale is more efficient. To this point, Category 2 of the rating scale seems to be most problematic. 
+
+The following items showed the best category response curves, which were all marked by unique peaks for each category: (1)Des_24, (6)Des_29, (7)Des_33, (9)Car_18, (10)Car_20, (11)Car_23, (12)Car_25, (15)Car_32, (17)Car_36
+  
+  * In general, most of these items showed information curves that peaked between theta levels of **-3.75 to 2**, with theta levels outside that range measured with decreased postcision. This is a result indicating that these items measures low to average levels of science interest with a moderate to high degree of postcision. 
+  
+
+* **Other items exhibited poor category response curves, and these included, most notably, (5)Des_26, (18)Self_19, (19)Self_22, (20)Self_27, (21)Self_31, (22)Self_22.** These same items exhibited the same issue in the "pre-administration" period, which suggests that they should likely be removed from the measure if the analyst is seeking to utilize an IRT score for the full mesaure vs. subscale.  
+
+### Model fit 
+
+How well do these models fit the data, and do the items appear to behave well given the selected itemtypes? The `M2()` function is used to assess global model fit, while the `itemfit()` in a piece-wise assessment of fit to discover where the model is misfitting. The `itemfit()` reports (Kang and Chen's (2007) Generalized S-X^2 Item-Fit Index)[http://files.eric.ed.gov/fulltext/ED510479.pdf]. In addition, the `p.adjust()` function with argument `method="fdr"` to correct for multiple testing of the itemfit() function.   
+
+Criteria for evaluating overall model fit:
+
+- RMSEA2 (i.e., bivariate RMSEA), where a value <= a threshold of .05/k-1 (i.e., 0.092) indicates good fit. 
+
+- SRMR <= .05
+
+- Non-significant M2 statistic
+
+```{r, mirt.3, message=FALSE, warning=FALSE, tidy=TRUE}
+# Global fit ---
+
+# M2
+M2_2PL <- M2(model_2pl, impute = 100)
+M2_2PL
+
+# compute the sample bivariate RMSEA
+sqrt((M2_2PL$M2[1]-M2_2PL$df[1])/(477*M2_2PL$df[1]))
+
+# Piecewise misfit ---
+
+# item fit statistics 
+itemfit_2pl <- itemfit(model_2pl, impute = 100) 
+
+# apply a false discovery rate to the p-value 
+# p.fdr <- p.adjust(itemfit_2pl$p.S_X2,"BH")
+# itemfit_2pl <- cbind(itemfit_2pl, p.fdr) # bind to postvious work
+
+# sort the item fit statistics by p-value
+itemfit_2pl %>%
+  slice(1:22) %>% 
+  arrange(p.S_X2) %>%
+  kable(digits = 2, format="html", caption="Item Fit Statistics", escape = F) %>%
+    kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+
+# Observed vs. expected for misfitting items 
+items.na <- na.omit(items) # df w/out missing
+
+# refit feeding the parameter estiamtes from original model 
+model_2pl.na <- mirt(items.na[-1], 1, itemnames = c(colnames(items.na[-1])),
+                  itemtype = 'graded', 
+                  pars=mod2values(model_2pl), TOL=NaN)
+
+# Car_16 
+itemfit_Car_16 <- itemfit(model_2pl.na, empirical.plot=8) 
+itemfit_Car_16
+
+# Self_31 
+itemfit_Self_31 <- itemfit(model_2pl.na, empirical.plot=21) 
+itemfit_Self_31
+
+# examine the observed vs. expected values looking for ZSTD with absolute value 1.96. 
+itemfit(model_2pl, empirical.table = 13)
+```
+Results for the global model fit showed that the model fit could be improved. The M2 value was significant. The SRMR was also above was also > .05. However, the RMSEA2 value was < 0.092. This is coroberated by what was observed above with the items that showed discrimination parameters < 1. 
+
+The piece-wise examination of the fit of the items using the S-X^2 statistic showed that Car_16 and Self_31 potentially misfit the data. An examination of the observed vs. expected values showed that the item misfit was likely occuring from categories 3 and 4 in the rating scale. 
+
+### Reliability and SEM 
+
+Examine information, SEM, and reliability for the whole measure.
+
+```{r, mirt.4, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+# examine test information
+info_model_2pl <- tibble(
+  theta = seq(-6,6,.01),
+  information = testinfo(model_2pl, theta),
+  error = 1/sqrt(information),
+  reliability = information/(information+1))
+
+# plot test information
+plot(model_2pl, type='info', MI=100)
+
+# plot SEM
+plot(model_2pl, type='SE', MI=100)
+
+# plot alpha at theta levels
+plot(model_2pl, type='rxx', MI=100)
+```
+
+The plots look almost identical to the pre-adminstration period.
+
+### Factor scores vs Standardized total scores 
+
+```{r, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+# Factor scores vs Standardized total scores 
+fs <- as.vector(fscores(model_2pl.na, method = "WLE", full.scores = TRUE)) 
+sts <- as.vector(scale(apply(na.omit(items)[-1], 1, sum))) 
+fscore_plot_dat <- as_data_frame(cbind(fs, sts))
+
+ggplot(fscore_plot_dat, aes(x=sts, y=fs)) + 
+  geom_point()+
+  geom_smooth()
+
+# histogram of theta
+ggplot(fscore_plot_dat, aes(fscore_plot_dat$fs)) + geom_histogram(bins=50)
+```
+
+Results showed that there was a linear association between total scores and IRT scores, with IRT scores that show a normal distribution and the postsence of a potentially few outliers that could be examined more fully with person fit statistics, and potentially removed from later analyses. 
+
+### Summary
+

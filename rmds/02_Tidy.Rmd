@@ -16,7 +16,7 @@ pacman::p_load(stringr, rmarkdown)
 
 # run the 01 script
 render("../rmds/01_Import.Rmd", "all", output_dir = "reports")
-
+colnames(pre.dat.labs)
 # Join the two data frames ----
 joined.dat <- pre.dat %>%
   inner_join(post.dat)

@@ -5,6 +5,8 @@ date: "`r format(Sys.time(), '%d %B, %Y, %H:%M')`"
 output:
   html_document:
     theme: paper
+    toc: true
+    toc_float: true
 ---
 
 # Introduction
@@ -21,7 +23,7 @@ First, let's bring in the data and munge it appropriately.
 if (!require("pacman")) install.packages("pacman")
 pacman::p_load(psych, ggplot2, ggalt, ggthemes, 
     readr, dplyr, knitr, scales, pander, kableExtra, stringr, scales,
-    mirt, ltm, tidyverse, formattable, gridExtra)
+    mirt, ltm, tidyverse, formattable, gridExtra, WrightMap)
 
 # Import the data ----
 joined.dat <- readRDS(file = "../data/joined.dat")
@@ -286,6 +288,18 @@ ggplot(irtParms_model_2pl_long, aes(x = items, y = value, color = param, group =
        x = "Items",
        y = "Category Difficulty",
        color = "Categories")
+
+# wright map
+irtParms_model_2pl_wmap <- irtParms_model_2pl %>%
+  dplyr::select(b1, b2, b3, b4)
+fs_wmap <- as.vector(fscores(model_2pl, method = "WLE", full.scores = 
+                               TRUE))
+
+irtParms_model_2pl_long$param <- as.factor(irtParms_model_2pl_long$param)
+
+library(WrightMap)
+irtParms_model_2pl_long
+wrightMap(fs_wmap, irtParms_model_2pl_wmap, label.items.row = 3)
 ```
 Results pertaining to the spread of the item difficulty parameters both within and across items is informative. The following items are among the most difficult in the measure: Car_28, Des_17 Des_21 and Self_19. The easiest items to endorse appeared to be: Des_26, Self_19, Self_22, and Self_27. Another notable pattern in observed in the plot is the spread of the item difficulty calibrations for the self-concept in science items, which are all quite wide. 
 
