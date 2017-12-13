@@ -1,0 +1,943 @@
+---
+title: "SEP IRT (Pre-Administration Period)"
+author: "Brandon Foster, Ph.D."
+date: "`r format(Sys.time(), '%d %B, %Y, %H:%M')`"
+output:
+  html_document:
+    theme: simplex
+    toc: TRUE
+---
+
+# Data Screeining 
+
+First, let's bring in the data and munge it appropriately. 
+```{r, import, message=FALSE, warning=FALSE, tidy=TRUE}
+# Set working directory ----
+#setwd("/Users/bfoster/Desktop/2017-edc/science-fairs-analyses")
+# Load packaes ----
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(psych, ggplot2, ggalt, ggthemes, 
+    readr, dplyr, knitr, scales, pander, kableExtra, stringr, scales,
+    mirt, ltm, tidyverse, formattable, gridExtra, tidyverse, broom)
+
+# Import the data ----
+joined.dat <- readRDS(file = "../data/joined.dat")
+
+# Munge data ----
+items <- joined.dat %>%
+  dplyr::select(StudentID, s_preSEP_01, s_preSEP_02, s_preSEP_03, 
+                s_preSEP_04, s_preSEP_05, s_preSEP_06, 
+                s_preSEP_07, s_preSEP_08, s_preSEP_09, 
+                s_preSEP_10, s_preSEP_11, s_preSEP_12, 
+                s_preSEP_13, s_preSEP_14) %>%
+  rename_(.dots=setNames(names(.), gsub("s_postInt_", "", names(.))))
+
+# create dataframe for item reference
+item.ref <- tibble(
+  Item = colnames(items)[-1],
+  Number = 1:14)
+```
+
+# Full measure
+
+## Item Descriptives
+
+The syntax below creates the item statistics using the `ltm` packages, and conducts all necessary munging for printing tables and plots. 
+
+```{r, descriptives.post, message=FALSE, warning=FALSE, tidy=TRUE}
+# easy item descriptive statistics from the 'ltm' package
+pre.items.descriptives <- descript(items[-1], chi.squared = TRUE, 
+                                   B = 1000)
+# extract the proportions in each categoty
+pre.per <- do.call(rbind, lapply((pre.items.descriptives[2]), data.frame, 
+                                 stringsAsFactors=FALSE)) %>%
+  mutate(item = colnames(items)[-1]) %>%
+         rename(Wrong = X0, Correct = X1) %>%
+  dplyr::select(item, Wrong, Correct)
+
+# convert to long for plotting 
+pre.per.long <- gather(pre.per, cat, value, -item) %>%
+  arrange(item)
+```
+
+### Analysis of mising data
+
+Let's look at the percent of missing responses for each item. A color bar has been added to the values in the table to compare the relative proportion missing per each item. 
+
+```{r, descriptives.1, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+# extract the proportions in each categoty
+do.call(rbind, lapply((pre.items.descriptives[7]), data.frame, 
+                                 stringsAsFactors=FALSE)) %>%
+  rownames_to_column("Statistic") %>%
+  filter(Statistic=="missin.(%)") %>%
+  gather(item, value, -Statistic) %>% 
+  dplyr::select(item, value) %>%
+  rename(Percent = value, Item = item) %>% 
+  mutate("Percent Missing" = color_bar("lightgreen")((Percent/100)*100)) %>%
+  dplyr::select(Item, "Percent Missing") %>%
+  kable(digits = 2, format="html", caption="Category Utilization for pre-Administration 
+        Period", escape = F) %>%
+    kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+```
+
+### Proportion Correct 
+
+Let's look at the table of the proportions of rating scale category utilization to see if anything looks aberrant.
+
+```{r, descriptives.2, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+# print the table
+pre.per %>%
+  rename(Item = item) %>%
+  kable(digits = 3, format="html", caption="Category Utilization for PRe-Administration 
+        Period") %>%
+    kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+```
+
+A visualization is provided for another perspective to examine proportion correct.
+
+```{r, descriptives.3, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+# plot the proportions
+p_pl1_prop <- ggplot() + geom_bar(aes(y = value, x = item, fill = cat), 
+                                  data = pre.per.long, stat="identity") +
+  ggtitle("Proportion Correct of SEP Items") + 
+  scale_fill_ptol() + theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) 
+p_pl1_prop
+```
+
+### Distribution of total score
+A histogram of the total score is provided to examine whether the total score for the measure is normally distributed with no obvious ceiling or floor effects. 
+
+```{r, descriptives.4, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+total <- rowSums(items[-1])
+histogram(~total, breaks=10)
+```
+
+## Fit the IRT Models
+
+The syntax below fits both the Rasch model, and the 2-PL model for dichotomous data. Standard errors are calculated based on the sandwich covariance estimate, which was chosen to adjust for nesting in the data. Results for the best fitting model (i.e., lowest BIC), indicated that the 2-PL model should be utilized in subsequent model testing. 
+
+```{r, mirt.1, message=FALSE, warning=FALSE, tidy=TRUE}
+# define the number of cores for quicker processing 
+mirtCluster(5)  
+
+# run the Rasch model
+model_1pl_rasch <- mirt(items[-1], 1, itemnames = 
+                        c(colnames(items[-1])), 
+                        itemtype = 'Rasch', 
+                        technical = list(removeEmptyRows=TRUE, parallel=TRUE), 
+                        empiricalhist = TRUE,
+                        SE = TRUE, SE.type = 'sandwich',
+                        verbose = FALSE)
+summary(model_1pl_rasch)
+
+# 2-PL model
+model_2pl <- mirt(items[-1], 1, itemnames = 
+                        c(colnames(items[-1])), 
+                        itemtype = '2PL', 
+                        technical = list(removeEmptyRows=TRUE, parallel=TRUE, NCYCLES = 10000), 
+                        empiricalhist = TRUE,
+                        SE = TRUE, SE.type = 'sandwich',
+                        verbose = FALSE)
+model_2pl
+
+# 3-PL model (computationally singular. Sample is small, so we don't worry too much)
+model_3pl <- mirt(items[-1], 1, itemnames =
+                        c(colnames(items[-1])),
+                        itemtype = '3PL',
+                        technical = list(removeEmptyRows=TRUE, parallel=TRUE, NCYCLES = 100000),
+                        empiricalhist = TRUE,
+                        SE = TRUE, SE.type = 'sandwich',
+                        verbose = FALSE)
+model_3pl
+
+
+# test the fit of 1 model vs. the other w/ BIC Table
+tibble(
+  "Rasch" = model_1pl_rasch@Fit$BIC,
+  "2PL" = model_2pl@Fit$BIC,
+  "3PL" = model_2pl@Fit$BIC)%>%
+  gather(key, BIC)%>%
+  arrange(BIC)
+
+# if needed, log-likelihood test can be provided with the command below
+#anova(model_1pl_rasch, model_2pl)
+```
+
+### IRT coefficients
+
+Inspect the best model using coef(), plotting functions and goodness-of-fit functions (see the according slide and cheat sheet). 
+
+```{r, mirt.a, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+as.data.frame(coef(model_2pl, IRTparms = T, simplify = TRUE)) %>%
+  rename(discrimination = items.a1,
+         difficulty = items.d) %>%
+  mutate(Item = colnames(items)[-1]) %>%
+  dplyr::select(Item, discrimination, difficulty) %>%
+  #arrange(-discrimination) %>%
+  kable(digits = 2, format="html", caption="Item IRT Parameters", escape = F) %>%
+    kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+```
+
+### Category response curves
+
+Next, the category response curves are examined. We're looking for two things: 1) the location of the item along the ability scale (i.e., difficulty), and 2) how well an item can differentiate among examinees who have abilities above and below the item location (i.e., the discrimination parameter). The steeper the curve, the better it can discriminate. Flatter curves indicate an almost equal probability of getting an item correct at either end of the ability continuum. The plots below indicate several problematic items: 2, 3, 4, 5, 7, 8, and **12**. Of these problematic items, item 12 should most certainly be removed from the analyses, as it has a negative discrimination parameter, which yields a monotonically decreasing item response function. This result indicates that people with high ability have a lower probability of responding correctly than people of low ability. The best discriminating items are: 1, 2, 10, 11, and 13, as these all exhibit the steepest curves. 
+```{r, mirt.crc, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+# table for reference
+item.ref %>%
+   kable(digits = 2, format="html", caption="Item Labels and Reference Numbers", escape = F) %>%
+    kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+
+# create fucntion to plot combined CRC and inforamtion 
+plotCRC<-function(i){
+itemplot(model_2pl, i, type = 'infotrace')
+}
+
+# plot all items using the function
+lapply(colnames(items)[-1], plotCRC)
+
+plot(model_2pl, type = 'trace', auto.key = FALSE)
+
+# plot the all of the curves in the same lattice plot. 
+plot(model_2pl, type = 'trace', which.items = 1:12, facet_items=FALSE)
+
+#
+residuals(model_2pl)
+```
+
+### Model fit 
+
+**Global Fit**: How well do these models fit the data, and do the items appear to behave well given the selected itemtypes? The `M2()` function is used to assess global model fit. Overall, the model fits the data well. 
+
+Criteria for evaluating overall model fit:
+
+- RMSEA <= .05
+
+- SRMR <= .05
+
+- Non-significant M2 statistic
+
+- TLI and CFI >= .90
+
+```{r, message=FALSE, warning=FALSE, tidy=TRUE}
+# Global fit ---
+
+# M2
+M2_2PL <- M2(model_2pl, impute = 100, residmat = TRUE)
+M2_2PL
+```
+
+**Item Fit**: The `itemfit()` in a piece-wise assessment of item fit using [Orlando and Thissen's (2000) S_X2 statistic](https://www.researchgate.net/profile/Maria_Edelen/publication/236884113_Likelihood-Based_Item-Fit_Indices_for_Dichotomous_Item_Response_Theory_Models/links/5408807e0cf23d9765b37482.pdf). An alpha of <= .01 is typically used to indicate misfitting items. Results hint at some issues with potentially misfitting items (i.e., 10, 12, and 13), but none of them reach the alpha value. Followup analyses could be conducted using [`itemGAM()`](https://www.rdocumentation.org/packages/mirt/versions/1.25/topics/itemGAM)to estimate the response curves for these items to hypothesize as to why these items are on the fringe of misfitting. 
+
+```{r, message=FALSE, warning=FALSE, tidy=TRUE}
+# Piecewise misfit ---
+
+# item fit statistics 
+itemfit_2pl <- itemfit(model_2pl, impute = 100) 
+
+# apply a false discovery rate to the p-value 
+# p.fdr <- p.adjust(itemfit_2pl$p.S_X2,"BH")
+# itemfit_2pl <- cbind(itemfit_2pl, p.fdr) # bind to postvious work
+
+# sort the item fit statistics by p-value
+itemfit_2pl %>%
+  slice(1:14) %>% 
+  arrange(p.S_X2) %>%
+  kable(digits = 2, format="html", caption="Item Fit Statistics", escape = F) %>%
+    kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+```
+
+### Assumptions
+
+**Local dependence**: [Yen’s index of local dependence Q3](https://conservancy.umn.edu/bitstream/handle/11299/107543/v08n2p125.pdf?sequence=1&isAllowed=y) is provided. Q3 is a pairwise index of correlation of the residuals from the IRT model. If some sets of items present a signicant level of residual correlation, then those items can be considered as locally dependent (Yen, 1993). Q3 statistics >= .2 are automatic. The Q3 statistic index indicated some local depenence between item 13 and item 1 and item 10. Recall from the analysis of item fit that items 10 and 13 were potentially problematic. In terms of the IRT estimates this could present some issues. Some results studies have shown that if negative local dependence is not modeled, the discrimination parameters of the interdependent items are underestimated. They also showed that the discrimination parameter (aj) depends on the difficulty of the item it interacts with, but not on the difficulty of the item itself. There are several ways to deal with this dependency: 1) model it as a testlet, incorporate it as a paramter into the model, all of which are quite time consuming and warrant their own set of analyses. 
+
+```{r, message=FALSE, warning=FALSE, tidy=TRUE}
+tidy(residuals(model_2pl, type = 'Q3', method = 'ML', suppress = .19))
+```
+
+**Unidimensionality**: A CFA is carried out to test the assumption that the measure is unidimensional. Fit statistics for the measure look OK, except the parameter for estimate for factor loading for item 12 is negative. This item was problematic in the IRT analyses above, as it displayed a negative discrimination parameter. It is an obvious candidate to remove from follow-up analyses. 
+```{r, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+model.1 <- '
+  # measurement model
+    factor =~ s_preSEP_01 + s_preSEP_02 + s_preSEP_03 + 
+                s_preSEP_04 + s_preSEP_05 + s_preSEP_06 + 
+                s_preSEP_07 + s_preSEP_08 + s_preSEP_09 + 
+                s_preSEP_10 + s_preSEP_11 + s_preSEP_12 +
+                s_preSEP_13 + s_preSEP_14
+'
+fit.1 <- cfa(model.1, data=items, std.lv = TRUE,
+             ordered = c("s_preSEP_01", "s_preSEP_02", "s_preSEP_03", 
+                "s_preSEP_04", "s_preSEP_05", "s_preSEP_06", 
+                "s_preSEP_07", "s_preSEP_08", "s_preSEP_09", 
+                "s_preSEP_10", "s_preSEP_11", "s_preSEP_12", 
+                "s_preSEP_13", "s_preSEP_14"))
+summary(fit.1, standardized=TRUE, fit.measures = TRUE)
+```
+
+Results testing a 1-factor solution for the measure, with item 12 removed, also fit good.
+```{r, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+# dropping item 12
+model.2 <- '
+  # measurement model
+    factor =~ s_preSEP_01 + s_preSEP_02 + s_preSEP_03 + 
+                s_preSEP_04 + s_preSEP_05 + s_preSEP_06 + 
+                s_preSEP_07 + s_preSEP_08 + s_preSEP_09 + 
+                s_preSEP_10 + s_preSEP_11 + 
+                s_preSEP_13 + s_preSEP_14
+'
+fit.2 <- cfa(model.2, data=items, std.lv = TRUE,
+              ordered = c("s_preSEP_01", "s_preSEP_02", "s_preSEP_03", 
+                "s_preSEP_04", "s_preSEP_05", "s_preSEP_06", 
+                "s_preSEP_07", "s_preSEP_08", "s_preSEP_09", 
+                "s_preSEP_10", "s_preSEP_11", "s_preSEP_12", 
+                "s_preSEP_13", "s_preSEP_14"))
+summary(fit.2, standardized=TRUE, fit.measures = TRUE)
+```
+
+## Follow-up IRT removing item 12
+
+```{r, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+
+
+
+
+```
+
+### Test Information
+
+Examine information, SEM, and reliability for the whole measure. The plots below show that information maxmimizes around an average ability level (i.e., in the range of -2 to + 2), standard errors are lower in this range, and reliability is maxmized. It is notable that reliability within this region fail to meet the conventional critieria of <=.70. 
+
+```{r, mirt.4, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+# examine test information
+info_model_2pl <- tibble(
+  theta = seq(-6,6,.01),
+  information = testinfo(model_2pl, theta),
+  error = 1/sqrt(information),
+  reliability = information/(information+1))
+
+# plot test information
+plot(model_2pl, type='info', MI=1000)
+
+# plot SEM
+plot(model_2pl, type='SE', MI=1000)
+
+# plot alpha at theta levels
+plot(model_2pl, type='rxx', MI=1000)
+```
+
+### Information Curves
+
+Next, the information curves for each item are examined, looking for overlap in category curves, as well as plateaus in the information curves. Results indicate a most items provide information about students with average ability. Ideally, these information curves should show peaks that are more spread out across the range of the underlying continuum. For example, only items 2, 4, 7, and 8 provide information for students in the above average portion of the latent continuum, though for the same approximate range. This could indicate a lot of redundancy in how the item pool. Finally, the scale of the y-axis should be considered in interpretting these plots. 
+
+```{r, mirt.crc, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+# table for reference
+item.ref %>%
+   kable(digits = 2, format="html", caption="Item Labels and Reference Numbers", escape = F) %>%
+    kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+
+# create fucntion to plot combined CRC and inforamtion 
+plotInfo<-function(i){
+itemplot(model_2pl, i, type = 'info')
+}
+
+# plot all items using the function
+lapply(colnames(items)[-1], plotInfo)
+```
+
+### Factor scores vs Standardized total scores 
+
+The plots below indicate the association between the standardized raw scores for the measure and the several different IRT generated scores (i.e., EAP, WLE, and ML). The plots show a slight curvilinear relationship, with IRT scores for extremely low scores higher than the standardized total scores.  
+
+```{r, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+# Factor scores vs Standardized total scores 
+fs.eap <- as.vector(fscores(model_2pl, method = "EAP", full.scores = TRUE)) 
+fs.wle <- as.vector(fscores(model_2pl, method = "WLE", full.scores = TRUE)) 
+fs.ml <- as.vector(fscores(model_2pl, method = "ML", full.scores = TRUE)) 
+sts <- as.vector(scale(apply((items)[-1], 1, sum))) 
+fscore_plot_dat <- as_data_frame(cbind(fs.eap, fs.wle, fs.ml, sts))
+
+# IRT EAP scores vs. standardized scores
+p1.eap <- ggplot(fscore_plot_dat, aes(x=sts, y=fs.eap)) + 
+  geom_point()+
+  geom_smooth() + 
+  theme_minimal() + 
+  ggtitle("IRT scores vs. Standardized Scores") + 
+  labs(y="EAP IRT Score", x="Standardized Scores")
+
+# IRT WLE scores vs. standardized scores
+p1.wle <- ggplot(fscore_plot_dat, aes(x=sts, y=fs.wle)) + 
+  geom_point()+
+  geom_smooth() + 
+  theme_minimal() + 
+  ggtitle("IRT scores vs. Standardized Scores") + 
+  labs(y="WLE IRT Score", x="Standardized Scores")
+
+# IRT ML scores vs. standardized scores
+p1.ml <- ggplot(fscore_plot_dat, aes(x=sts, y=fs.ml)) + 
+  geom_point()+
+  geom_smooth() + 
+  theme_minimal() + 
+  ggtitle("IRT scores vs. Standardized Scores") + 
+  labs(y="ML IRT Score", x="Standardized Scores")
+
+# plot in grid
+grid.arrange( p1.eap, p1.wle, p1.ml, ncol=2)
+
+# histogram of theta
+ggplot(fscore_plot_dat, aes(fscore_plot_dat$fs)) + geom_histogram(bins=25)
+```
+
+# Full measure without item 12
+
+#SANDBOX
+```{r}
+twoPL.1.model<-'
+# loadings
+Theta =~ l1*s_preSEP_01 + l2*s_preSEP_02 + l3*s_preSEP_03 + l4*s_preSEP_04 + l5*s_preSEP_05 + 
+l6*s_preSEP_06 + l7*s_preSEP_07 + l8*s_preSEP_08 + l9*s_preSEP_09 + l10*s_preSEP_10 + 
+l11*s_preSEP_11 + l12*s_preSEP_12 + l13*s_preSEP_13 + l14*s_preSEP_14
+
+# thresholds
+s_preSEP_01  | th1*t1
+s_preSEP_02  | th2*t1
+s_preSEP_03  | th3*t1
+s_preSEP_04  | th4*t1
+s_preSEP_05  | th5*t1
+s_preSEP_06  | th6*t1
+s_preSEP_07  | th7*t1
+s_preSEP_08  | th8*t1
+s_preSEP_09  | th9*t1
+s_preSEP_10 | th10*t1
+s_preSEP_11 | th11*t1
+s_preSEP_12 | th12*t1
+s_preSEP_13 | th13*t1
+s_preSEP_14 | th14*t1
+
+# convert loadings to slopes (normal)
+alpha1.N := (l1)/sqrt(1-l1^2)
+alpha2.N := (l2)/sqrt(1-l2^2)
+alpha3.N := (l3)/sqrt(1-l3^2)
+alpha4.N := (l4)/sqrt(1-l4^2)
+alpha5.N := (l5)/sqrt(1-l5^2)
+alpha6.N := (l6)/sqrt(1-l6^2)
+alpha7.N := (l7)/sqrt(1-l7^2)
+alpha8.N := (l8)/sqrt(1-l8^2)
+alpha9.N := (l9)/sqrt(1-l9^2)
+alpha10.N := (l10)/sqrt(1-l10^2)
+alpha11.N := (l11)/sqrt(1-l11^2)
+alpha12.N := (l12)/sqrt(1-l12^2)
+alpha13.N := (l13)/sqrt(1-l13^2)
+alpha14.N := (l14)/sqrt(1-l14^2)
+
+# use thresholds to get difficulty: convert thresholds to intercepts (normal)
+beta1.N  := (-th1)/sqrt(1-l1^2)
+beta2.N  := (-th2)/sqrt(1-l2^2)
+beta3.N  := (-th3)/sqrt(1-l3^2)
+beta4.N  := (-th4)/sqrt(1-l4^2)
+beta5.N  := (-th5)/sqrt(1-l5^2)
+beta6.N  := (-th6)/sqrt(1-l6^2)
+beta7.N  := (-th7)/sqrt(1-l7^2)
+beta8.N  := (-th8)/sqrt(1-l8^2)
+beta9.N  := (-th9)/sqrt(1-l9^2)
+beta10.N := (-th10)/sqrt(1-l10^2)
+beta11.N := (-th11)/sqrt(1-l11^2)
+beta12.N := (-th12)/sqrt(1-l12^2)
+beta13.N := (-th13)/sqrt(1-l13^2)
+beta14.N := (-th14)/sqrt(1-l14^2)
+
+# convert intercepts to locations (normal)
+loc1  := -beta1.N/alpha1.N
+loc2  := -beta2.N/alpha2.N
+loc3  := -beta3.N/alpha3.N
+loc4  := -beta4.N/alpha4.N
+loc5  := -beta5.N/alpha5.N
+loc6  := -beta6.N/alpha6.N
+loc7  := -beta7.N/alpha7.N
+loc8  := -beta8.N/alpha8.N
+loc9  := -beta9.N/alpha9.N
+loc10 := -beta10.N/alpha10.N
+loc11 := -beta11.N/alpha11.N
+loc12 := -beta12.N/alpha12.N
+loc13 := -beta13.N/alpha13.N
+loc14 := -beta14.N/alpha14.N
+
+# convert loadings to discrimination: convert loadings to slopes (logistic)
+alpha1.L  := (l1)/sqrt(1-l1^2)*1.7
+alpha2.L  := (l2)/sqrt(1-l2^2)*1.7
+alpha3.L  := (l3)/sqrt(1-l3^2)*1.7
+alpha4.L  := (l4)/sqrt(1-l4^2)*1.7
+alpha5.L  := (l5)/sqrt(1-l5^2)*1.7
+alpha6.L  := (l6)/sqrt(1-l6^2)*1.7
+alpha7.L  := (l7)/sqrt(1-l7^2)*1.7
+alpha8.L  := (l8)/sqrt(1-l8^2)*1.7
+alpha9.L  := (l9)/sqrt(1-l9^2)*1.7
+alpha10.L := (l10)/sqrt(1-l10^2)*1.7
+alpha11.L := (l11)/sqrt(1-l11^2)*1.7
+alpha12.L := (l12)/sqrt(1-l12^2)*1.7
+alpha13.L := (l13)/sqrt(1-l13^2)*1.7
+alpha14.L := (l14)/sqrt(1-l14^2)*1.7
+
+# convert thresholds to locations (logistic)
+loc1.L := th1/l1
+loc2.L := th2/l2
+loc3.L := th3/l3
+loc4.L := th4/l4
+loc5.L := th5/l5
+loc6.L := th6/l5
+loc7.L := th7/l5
+loc8.L := th8/l5
+loc9.L := th9/l5
+loc10.L := th10/l5
+loc11.L := th11/l5
+loc12.L := th12/l5
+loc13.L := th13/l5
+loc14.L := th14/l5
+
+# convert locations to intercepts (logistic)
+beta1.L  := (-alpha1.L)*loc1.L
+beta2.L  := (-alpha2.L)*loc2.L
+beta3.L  := (-alpha3.L)*loc3.L
+beta4.L  := (-alpha4.L)*loc4.L
+beta5.L  := (-alpha5.L)*loc5.L
+beta6.L  := (-alpha6.L)*loc6.L
+beta7.L  := (-alpha7.L)*loc7.L
+beta8.L  := (-alpha8.L)*loc8.L
+beta9.L  := (-alpha9.L)*loc9.L
+beta10.L := (-alpha10.L)*loc10.L
+beta11.L := (-alpha11.L)*loc11.L
+beta12.L := (-alpha12.L)*loc12.L
+beta13.L := (-alpha13.L)*loc13.L
+beta14.L := (-alpha14.L)*loc14.L
+'
+
+# run the model
+twoP.fit <- cfa(twoPL.1.model, data=data.frame(items),  std.lv=TRUE, 
+                ordered = c("s_preSEP_01", "s_preSEP_02", "s_preSEP_03", 
+                "s_preSEP_04", "s_preSEP_05", "s_preSEP_06", 
+                "s_preSEP_07", "s_preSEP_08", "s_preSEP_09", 
+                "s_preSEP_10", "s_preSEP_11", "s_preSEP_12", 
+                "s_preSEP_13", "s_preSEP_14"))
+
+summary(twoP.fit, standardized=TRUE, fit.measures=TRUE)
+model_2pl
+
+items.no.na <- na.omit(items)
+
+test.mod<-'
+# loadings
+Theta =~ NA*l1*s_preSEP_01 + l2*s_preSEP_02 + l3*s_preSEP_03 + l4*s_preSEP_04 + l5*s_preSEP_05 + 
+l6*s_preSEP_06 + l7*s_preSEP_07 + l8*s_preSEP_08 + l9*s_preSEP_09 + l10*s_preSEP_10 + 
+l11*s_preSEP_11 + l12*s_preSEP_12 + l13*s_preSEP_13 + l14*s_preSEP_14
+
+# thresholds
+s_preSEP_01  | th1*t1
+s_preSEP_02  | th2*t1
+s_preSEP_03  | th3*t1
+s_preSEP_04  | th4*t1
+s_preSEP_05  | th5*t1
+s_preSEP_06  | th6*t1
+s_preSEP_07  | th7*t1
+s_preSEP_08  | th8*t1
+s_preSEP_09  | th9*t1
+s_preSEP_10 | th10*t1
+s_preSEP_11 | th11*t1
+s_preSEP_12 | th12*t1
+s_preSEP_13 | th13*t1
+s_preSEP_14 | th14*t1
+Theta~Theta*1
+'
+res <- sirt::lavaan2mirt( items.no.na , test.mod , technical=list(NCYCLES=20) , verbose=TRUE)
+```
+
+
+```{r, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+twoPL.1.model<-'
+# loadings
+Theta =~ l1*s_preSEP_01 + l2*s_preSEP_02 + l3*s_preSEP_03 + l4*s_preSEP_04 + l5*s_preSEP_05 + 
+l6*s_preSEP_06 + l7*s_preSEP_07 + l8*s_preSEP_08 + l9*s_preSEP_09 + l10*s_preSEP_10 + 
+l11*s_preSEP_11 + l12*s_preSEP_12 + l13*s_preSEP_13 + l14*s_preSEP_14
+
+# thresholds
+s_preSEP_01  | th1*t1
+s_preSEP_02  | th2*t1
+s_preSEP_03  | th3*t1
+s_preSEP_04  | th4*t1
+s_preSEP_05  | th5*t1
+s_preSEP_06  | th6*t1
+s_preSEP_07  | th7*t1
+s_preSEP_08  | th8*t1
+s_preSEP_09  | th9*t1
+s_preSEP_10 | th10*t1
+s_preSEP_11 | th11*t1
+s_preSEP_12 | th12*t1
+s_preSEP_13 | th13*t1
+s_preSEP_14 | th14*t1
+
+# convert loadings to slopes (normal)
+alpha1.N := (l1)/sqrt(1-l1^2)
+alpha2.N := (l2)/sqrt(1-l2^2)
+alpha3.N := (l3)/sqrt(1-l3^2)
+alpha4.N := (l4)/sqrt(1-l4^2)
+alpha5.N := (l5)/sqrt(1-l5^2)
+alpha6.N := (l6)/sqrt(1-l6^2)
+alpha7.N := (l7)/sqrt(1-l7^2)
+alpha8.N := (l8)/sqrt(1-l8^2)
+alpha9.N := (l9)/sqrt(1-l9^2)
+alpha10.N := (l10)/sqrt(1-l10^2)
+alpha11.N := (l11)/sqrt(1-l11^2)
+alpha12.N := (l12)/sqrt(1-l12^2)
+alpha13.N := (l13)/sqrt(1-l13^2)
+alpha14.N := (l14)/sqrt(1-l14^2)
+
+# convert thresholds to intercepts (normal)
+beta1.N  := (-th1)/sqrt(1-l1^2)
+beta2.N  := (-th2)/sqrt(1-l2^2)
+beta3.N  := (-th3)/sqrt(1-l3^2)
+beta4.N  := (-th4)/sqrt(1-l4^2)
+beta5.N  := (-th5)/sqrt(1-l5^2)
+beta6.N  := (-th6)/sqrt(1-l6^2)
+beta7.N  := (-th7)/sqrt(1-l7^2)
+beta8.N  := (-th8)/sqrt(1-l8^2)
+beta9.N  := (-th9)/sqrt(1-l9^2)
+beta10.N := (-th10)/sqrt(1-l10^2)
+beta11.N := (-th11)/sqrt(1-l11^2)
+beta12.N := (-th12)/sqrt(1-l12^2)
+beta13.N := (-th13)/sqrt(1-l13^2)
+beta14.N := (-th14)/sqrt(1-l14^2)
+
+# convert intercepts to locations (normal)
+loc1  := -beta1.N/alpha1.N
+loc2  := -beta2.N/alpha2.N
+loc3  := -beta3.N/alpha3.N
+loc4  := -beta4.N/alpha4.N
+loc5  := -beta5.N/alpha5.N
+loc6  := -beta6.N/alpha6.N
+loc7  := -beta7.N/alpha7.N
+loc8  := -beta8.N/alpha8.N
+loc9  := -beta9.N/alpha9.N
+loc10 := -beta10.N/alpha10.N
+loc11 := -beta11.N/alpha11.N
+loc12 := -beta12.N/alpha12.N
+loc13 := -beta13.N/alpha13.N
+loc14 := -beta14.N/alpha14.N
+
+# convert loadings to slopes (logistic)
+alpha1.L  := (l1)/sqrt(1-l1^2)*1.7
+alpha2.L  := (l2)/sqrt(1-l2^2)*1.7
+alpha3.L  := (l3)/sqrt(1-l3^2)*1.7
+alpha4.L  := (l4)/sqrt(1-l4^2)*1.7
+alpha5.L  := (l5)/sqrt(1-l5^2)*1.7
+alpha6.L  := (l6)/sqrt(1-l6^2)*1.7
+alpha7.L  := (l7)/sqrt(1-l7^2)*1.7
+alpha8.L  := (l8)/sqrt(1-l8^2)*1.7
+alpha9.L  := (l9)/sqrt(1-l9^2)*1.7
+alpha10.L := (l10)/sqrt(1-l10^2)*1.7
+alpha11.L := (l11)/sqrt(1-l11^2)*1.7
+alpha12.L := (l12)/sqrt(1-l12^2)*1.7
+alpha13.L := (l13)/sqrt(1-l13^2)*1.7
+alpha14.L := (l14)/sqrt(1-l14^2)*1.7
+
+# convert thresholds to locations (logistic)
+loc1.L := th1/l1
+loc2.L := th2/l2
+loc3.L := th3/l3
+loc4.L := th4/l4
+loc5.L := th5/l5
+loc6.L := th6/l5
+loc7.L := th7/l5
+loc8.L := th8/l5
+loc9.L := th9/l5
+loc10.L := th10/l5
+loc11.L := th11/l5
+loc12.L := th12/l5
+loc13.L := th13/l5
+loc14.L := th14/l5
+
+# convert locations to intercepts (logistic)
+beta1.L  := (-alpha1.L)*loc1.L
+beta2.L  := (-alpha2.L)*loc2.L
+beta3.L  := (-alpha3.L)*loc3.L
+beta4.L  := (-alpha4.L)*loc4.L
+beta5.L  := (-alpha5.L)*loc5.L
+beta6.L  := (-alpha6.L)*loc6.L
+beta7.L  := (-alpha7.L)*loc7.L
+beta8.L  := (-alpha8.L)*loc8.L
+beta9.L  := (-alpha9.L)*loc9.L
+beta10.L := (-alpha10.L)*loc10.L
+beta11.L := (-alpha11.L)*loc11.L
+beta12.L := (-alpha12.L)*loc12.L
+beta13.L := (-alpha13.L)*loc13.L
+beta14.L := (-alpha14.L)*loc14.L
+'
+
+# run the model
+twoP.fit <- cfa(twoPL.1.model, data=data.frame(items),  std.lv=TRUE, 
+                ordered = c("s_preSEP_01", "s_preSEP_02", "s_preSEP_03", 
+                "s_preSEP_04", "s_preSEP_05", "s_preSEP_06", 
+                "s_preSEP_07", "s_preSEP_08", "s_preSEP_09", 
+                "s_preSEP_10", "s_preSEP_11", "s_preSEP_12", 
+                "s_preSEP_13", "s_preSEP_14"))
+summary(twoP.fit, standardized=TRUE)
+#summary(model_2pl)
+```
+
+```{r}
+twoPL.1.model <-
+'
+# loadings
+Theta =~ l1*s_preSEP_01 + l2*s_preSEP_02 + l3*s_preSEP_03 + l4*s_preSEP_04 + l5*s_preSEP_05 + 
+l6*s_preSEP_06 + l7*s_preSEP_07 + l8*s_preSEP_08 + l9*s_preSEP_09 + l10*s_preSEP_10 + 
+l11*s_preSEP_11 + l12*s_preSEP_12 + l13*s_preSEP_13 + l14*s_preSEP_14
+
+# thresholds
+s_preSEP_01  | th1*t1
+s_preSEP_02  | th2*t1
+s_preSEP_03  | th3*t1
+s_preSEP_04  | th4*t1
+s_preSEP_05  | th5*t1
+s_preSEP_06  | th6*t1
+s_preSEP_07  | th7*t1
+s_preSEP_08  | th8*t1
+s_preSEP_09  | th9*t1
+s_preSEP_10 | th10*t1
+s_preSEP_11 | t11*t1
+s_preSEP_12 | th12*t1
+s_preSEP_13 | th13*t1
+s_preSEP_14 | th14*t1
+'
+
+# run the model
+twoP.fit <- cfa(twoPL.1.model, data=data.frame(items),  std.lv=TRUE, 
+                ordered = c("s_preSEP_01", "s_preSEP_02", "s_preSEP_03", 
+                "s_preSEP_04", "s_preSEP_05", "s_preSEP_06", 
+                "s_preSEP_07", "s_preSEP_08", "s_preSEP_09", 
+                "s_preSEP_10", "s_preSEP_11", "s_preSEP_12", 
+                "s_preSEP_13", "s_preSEP_14"), parameterization='theta')
+summary(twoP.fit, standardized=TRUE, fit.measures=TRUE)
+```
+Trying to model local dependence in MIRT
+```{r}
+#MODEL STATEMENT: 
+
+mod.statement <- '
+THETA = s_preSEP_01, s_preSEP_02, s_preSEP_03, s_preSEP_04, s_preSEP_05, s_preSEP_06, s_preSEP_07, s_preSEP_08, s_preSEP_09, s_preSEP_10, s_preSEP_11, s_preSEP_12, s_preSEP_13, s_preSEP_14
+
+# two items exhibiting local dependence (should these two items not be included in the THETA call above?)
+RESID.THETA = s_preSEP_10, s_preSEP_13         
+
+# constrain the two slopes to identify the construct for the factor with local dependence
+CONSTRAIN = (s_preSEP_10, s_preSEP_13, a2)   
+COV = THETA*THETA
+'
+
+#RUN THE 2PL MODEL IN MIRT: 
+ 
+mod1.2pl <- mirt(items[-1], mod.statement, itemnames = 
+                        c(colnames(items[-1])), 
+                        itemtype = '2PL', 
+                        technical = list(removeEmptyRows=TRUE, parallel=TRUE, NCYCLES = 10000),
+                        SE = TRUE, SE.type = 'sandwich')
+mod1.2pl
+summary(mod1.2pl)
+
+coef(mod1.2pl, IRTparms = TRUE, simplify = TRUE)
+coef(mod1.2pl, IRTparms = FALSE, simplify = TRUE)
+
+itemfit_mod1.2pl <- itemfit(mod1.2pl, impute = 100) 
+
+# apply a false discovery rate to the p-value 
+# p.fdr <- p.adjust(itemfit_2pl$p.S_X2,"BH")
+# itemfit_2pl <- cbind(itemfit_2pl, p.fdr) # bind to postvious work
+
+# sort the item fit statistics by p-value
+itemfit_mod1.2pl %>%
+  slice(1:14) %>% 
+  arrange(p.S_X2) %>%
+  kable(digits = 2, format="html", caption="Item Fit Statistics", escape = F) %>%
+    kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+
+```
+
+```{r, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
+
+# Let's first fit a Rasch model to the data
+# The 1 is for "one-factor"
+# run the Rasch model
+rasch.mirt <- mirt(items[-1], 1, itemnames = 
+                        c(colnames(items[-1])), 
+                        itemtype = 'Rasch', 
+                        technical = list(removeEmptyRows=TRUE, parallel=TRUE), 
+                        empiricalhist = TRUE,
+                        SE = TRUE, SE.type = 'sandwich',
+                        verbose = FALSE)
+# Let's look at the estimated parameters
+
+# a1, corresponds to the item discrimation
+# d, corresponds to the item difficulty
+# g, is the guessing parameter
+# u, is the sqrt of the factor uniqueness
+coef(rasch.mirt)
+
+rasch.mirt
+# The provides various fit output measures
+
+# Let's fit a 2-PL model
+mirt.2pl <-  mirt(items[-1], 1, itemnames = 
+                        c(colnames(items[-1])), 
+                        itemtype = '2PL', 
+                        technical = list(removeEmptyRows=TRUE, parallel=TRUE), 
+                        empiricalhist = TRUE,
+                        SE = TRUE, SE.type = 'sandwich',
+                        verbose = FALSE)
+coef(mirt.2pl)
+
+# Finally, let's fit a 3-PL
+mirt.3pl <- mirt(items[-1], 1, itemnames = 
+                        c(colnames(items[-1])), 
+                        itemtype = '3PL', 
+                        technical = list(removeEmptyRows=TRUE, parallel=TRUE), 
+                        empiricalhist = TRUE,
+                        SE = TRUE, SE.type = 'sandwich',
+                        verbose = FALSE)
+coef(mirt.3pl)
+
+# But was it appropriate to run unidimensional IRT?
+oneF <- mirt(items[-1],1, technical = list(removeEmptyRows=TRUE, parallel=TRUE))
+twoF <- mirt(items[-1],2, technical = list(removeEmptyRows=TRUE, parallel=TRUE))
+
+summary(oneF)
+summary(twoF)
+# h2 is the proportion of a manifest variables variance explained by the factor structure (n.b. when rotation is orthogonal this is the sum of their squared factor loadings)
+
+# You can rotate the structure to make is more understandable and suppress loadings
+# By default you see it does an oblimin rotation, which is an oblique rotation
+# varimax is a common orthogonal rotation
+# There are a whole slew of rotations available
+# ?GPArotation
+# We'll also suppress the loadings that are 0.25
+
+summary(twoF,rotate="varimax", suppress = 0.25) 
+
+## Notice the factor correlation below
+
+# If you want empirically compare the two models
+# H_0 is that fit is the same
+# reject H_0 means that we favor the more complex model 
+
+anova(oneF,twoF)
+
+# Given this, is it appropriate to even use the one factor model and unidimensional IRT?
+
+# Recall that one of the assumptions is local independence
+# i.e. two items are only related to one another through the factor
+# and any residual errors should be uncorrelated.
+# This can be formally examined
+
+residuals(oneF)
+
+# This prints a local dependence pairwise statistic between the items
+# This statistic has a chi-square distribution with 1 df under H_0.
+# Formally, extreme values larger than ...
+
+qchisq(.95,df=1)
+
+# Indicate violations of local independence
+# This is along the bottom of the triangle
+
+# Standardized Cramer's V, similar to correlations 
+# are above the triangle
+# This is again evidence that a one-factor model may be in sufficient
+
+# Ability estimates
+
+# Defaults to EAP
+# This is expected a posteriori, or Bayes mean estimate
+# This is takes the mean of the posterior distribution of the person ability estimates
+fscores(rasch.mirt)
+
+# MAP scores
+# This is maximum a posteriori, or Bayes modal estimate
+# This is takes the mode of the posterior distribution of the person ability estimates
+fscores(rasch.mirt, method = "MAP")
+# Empircial reliability is the ratio of the variance of the MAP (EAP) thetas to the
+# sum of the variance of the thetas and error variance
+
+
+# The prior distribution is a multivariate normal distribution with a mean vector of 0s
+# and an identity matrix for the covariance matrix.
+# The mean and covariances can be specified, but it doesn't appear
+# as though you are able to change the actual distribution.
+
+# These two estimates are affected by the choice of the prior distribution on the person abilities
+# Therefore, if the prior distribution doesn't reflect reality, then these estimates will be biased
+
+
+# Finally, ML scores
+# These are maximum likelihood estimates and are based solely on the data, i.e. the likelihood
+fscores(rasch.mirt, method = "ML")
+# There is a problem here ...
+
+# Can also set quadrature points here, but again how many?
+
+# Let's see how well these models relate to one another
+rs <- as.data.frame(fscores(rasch.mirt, method = "MAP"))
+s2pl <- as.data.frame(fscores(mirt.2pl, method = "MAP"))
+#s3pl <- as.data.frame(fscores(mirt.3pl, method = "MAP"))
+scores <- data.frame(rs$F1,s2pl$F1)
+cor(scores)
+
+
+#########
+# Plots #
+#########
+
+# To plot the test information
+plot(rasch.mirt)
+
+# To plot the item response functions
+plot(rasch.mirt,type = "trace")
+
+# To plot just the irf for item 1
+plot(rasch.mirt,type = "trace",which.items= 1)
+
+# To plot the item information functions
+plot(rasch.mirt,type = "infotrace", facet_items = TRUE)
+
+# Remove the facet
+plot(rasch.mirt,type = "infotrace", facet_items = FALSE)
+
+# To plot just the irf for item 1,2 & 5
+plot(rasch.mirt,type = "infotrace",which.items= c(1:2,5))
+
+# test response function, i.e. the expected total score
+plot(rasch.mirt,type="score")
+
+#######################
+# Comparing model fit #
+#######################
+
+# First compare the rasch to the 2PL
+anova(rasch.mirt,mirt.2pl)
+
+# Compare the 2PL to the 3PL
+anova(mirt.2pl,mirt.3pl) 
+
+# There is no improvement in fit
+# With these test also notice there 
+# are various fit criteria such as AIC and BIC
+
+# We can plot the 2PL as we did with the rasch
+plot(mirt.2pl)
+plot(mirt.2pl,type = "trace") 
+# From this plot we can see that items 4 and 5 have the lowest discrimation
+# and item 3 has the highest
+
+# Let's examine information
+plot(mirt.2pl,type = "infotrace") 
+# How does this relate to discrimation, a?
+
+# Interactive shiny plot
+install.packages("shiny")
+library("shiny")
+itemplot(mirt.2pl, shiny = TRUE)
+```

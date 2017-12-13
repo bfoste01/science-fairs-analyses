@@ -116,7 +116,7 @@ Results showed that Des_17, Des_33, and Car_32 had the highest percentage of mis
 
 ### Category utilization 
 
-Let's look at the table of the proportions of rating scale category utilization to see if anything looks aberrant.  
+Let's look at the table of the proportions of rating scale category utilization to see if anything looks aberrant.
 
 ```{r, descriptives.2, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
 # print the table
