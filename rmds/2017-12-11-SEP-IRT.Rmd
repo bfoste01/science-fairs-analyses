@@ -141,6 +141,7 @@ model_2pl <- mirt(items[-1], 1, itemnames =
                         verbose = FALSE)
 model_2pl
 
+
 # 3-PL model (computationally singular. Sample is small, so we don't worry too much)
 model_3pl <- mirt(items[-1], 1, itemnames =
                         c(colnames(items[-1])),
@@ -177,6 +178,9 @@ as.data.frame(coef(model_2pl, IRTparms = T, simplify = TRUE)) %>%
   #arrange(-discrimination) %>%
   kable(digits = 2, format="html", caption="Item IRT Parameters", escape = F) %>%
     kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+
+#mirt:::mirt2traditional(test)
+#test <- coef(model_2pl, IRTparms = T, simplify = TRUE)
 ```
 
 ### Category response curves
