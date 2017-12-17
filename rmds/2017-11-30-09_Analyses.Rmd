@@ -404,6 +404,21 @@ The plots look almost identical to the pre-adminstration period.
 
 ```{r, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
 # Factor scores vs Standardized total scores 
+# Factor scores vs Standardized total scores 
+#fs.map <- as.vector(
+# Theta_postSep <-  fscores(model_2pl, method = "MAP", full.scores = TRUE)
+# STS_postSep <- as.vector(scale(apply((items.noNA)[-1], 1, sum))) 
+# TOTAL_postSep<- apply((items.noNA_no12)[-1], 1, sum)
+# 
+# # save the factor scores
+# post.sep.theta <- cbind(
+#   items.noNA_no12[1], Theta_postSep, TOTAL_postSep, STS_postSep
+# ) %>%
+#   rename(Theta_postSep = F1)
+
+# write the data
+write_csv(post.sep.theta, "../data/post.sep.theta.csv")
+
 fs <- as.vector(fscores(model_2pl.na, method = "WLE", full.scores = TRUE)) 
 sts <- as.vector(scale(apply(na.omit(items)[-1], 1, sum))) 
 fscore_plot_dat <- as_data_frame(cbind(fs, sts))

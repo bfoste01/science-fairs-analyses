@@ -27,11 +27,11 @@ joined.dat <- readRDS(file = "../data/joined.dat")
 
 # Munge data ----
 items <- joined.dat %>%
-  dplyr::select(StudentID, s_preSEP_01, s_preSEP_02, s_preSEP_03, 
-                s_preSEP_04, s_preSEP_05, s_preSEP_06, 
-                s_preSEP_07, s_preSEP_08, s_preSEP_09, 
-                s_preSEP_10, s_preSEP_11, s_preSEP_12, 
-                s_preSEP_13, s_preSEP_14) %>%
+  dplyr::select(StudentID, s_postSEP_01, s_postSEP_02, s_postSEP_03, 
+                s_postSEP_04, s_postSEP_05, s_postSEP_06, 
+                s_postSEP_07, s_postSEP_08, s_postSEP_09, 
+                s_postSEP_10, s_postSEP_11, s_postSEP_12, 
+                s_postSEP_13, s_postSEP_14) %>%
   rename_(.dots=setNames(names(.), gsub("s_postInt_", "", names(.))))
 
 # create dataframe for item reference
@@ -46,17 +46,17 @@ The syntax below creates the item descriptive statistics using the `ltm` package
 
 ```{r, descriptives.post, message=FALSE, warning=FALSE, tidy=TRUE}
 # easy item descriptive statistics from the 'ltm' package
-pre.items.descriptives <- descript(items[-1], chi.squared = TRUE, 
+post.items.descriptives <- descript(items[-1], chi.squared = TRUE, 
                                    B = 1000)
 # extract the proportions in each categoty
-pre.per <- do.call(rbind, lapply((pre.items.descriptives[2]), data.frame, 
+post.per <- do.call(rbind, lapply((post.items.descriptives[2]), data.frame, 
                                  stringsAsFactors=FALSE)) %>%
   mutate(item = colnames(items)[-1]) %>%
          rename(Wrong = X0, Correct = X1) %>%
   dplyr::select(item, Wrong, Correct)
 
 # convert to long for plotting 
-pre.per.long <- gather(pre.per, cat, value, -item) %>%
+post.per.long <- gather(post.per, cat, value, -item) %>%
   arrange(item)
 ```
 
@@ -66,7 +66,7 @@ Let's look at the percent of missing responses for each item. A color bar has be
 
 ```{r, descriptives.1, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
 # extract the proportions in each categoty
-do.call(rbind, lapply((pre.items.descriptives[7]), data.frame, 
+do.call(rbind, lapply((post.items.descriptives[7]), data.frame, 
                                  stringsAsFactors=FALSE)) %>%
   rownames_to_column("Statistic") %>%
   filter(Statistic=="missin.(%)") %>%
@@ -75,20 +75,20 @@ do.call(rbind, lapply((pre.items.descriptives[7]), data.frame,
   rename(Percent = value, Item = item) %>% 
   mutate("Percent Missing" = color_bar("lightgreen")((Percent/100)*100)) %>%
   dplyr::select(Item, "Percent Missing") %>%
-  kable(digits = 2, format="html", caption="Category Utilization for pre-Administration 
+  kable(digits = 2, format="html", caption="Category Utilization for post-Administration 
         Period", escape = F) %>%
     kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
 ```
 
 ## Proportion Correct 
 
-Let's look at the table of the proportions correct for each item in order to see if anything looks aberrant. It's worth noting that for many items, almost 70% of students are providing the correct answer. 
+Let's look at the table of the proportions correct for each item in order to see if anything looks aberrant. 
 
 ```{r, descriptives.2, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
 # print the table
-pre.per %>%
+post.per %>%
   rename(Item = item) %>%
-  kable(digits = 3, format="html", caption="Category Utilization for Pre-Administration 
+  kable(digits = 3, format="html", caption="Category Utilization for post-Administration 
         Period") %>%
     kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
 ```
@@ -98,7 +98,7 @@ A visualization is provided for another perspective to examine proportion correc
 ```{r, descriptives.3, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
 # plot the proportions
 p_pl1_prop <- ggplot() + geom_bar(aes(y = value, x = item, fill = cat), 
-                                  data = pre.per.long, stat="identity") +
+                                  data = post.per.long, stat="identity") +
   ggtitle("Proportion Correct of SEP Items") + 
   labs(x="Items", y="Proportion of Response Option", fill="Category") +
   scale_fill_ptol() + theme_minimal() +
@@ -151,7 +151,7 @@ model_2pl
 set.seed(8675309)
 model_3pl <- mirt(items.noNA[-1], 1, 
                         itemtype = '3PL',
-                        technical = list(removeEmptyRows=TRUE, parallel=TRUE, NCYCLES = 6000),
+                        technical = list(removeEmptyRows=TRUE, parallel=TRUE, NCYCLES = 80000),
                         SE = TRUE, SE.type = 'sandwich',
                         verbose = FALSE)
 # check model convergence
@@ -176,7 +176,7 @@ kable(digits = 2, format="html", caption="Model Selection With SABIC", escape = 
 
 ## IRT coefficients
 
-Inspect the parameter (i.e., IRT adjusted), for the best fitting model. 
+Inspect the parameter (i.e., IRT adjusted), for the best fitting model. Again, item 12 has a negative discrimination. 
 
 ```{r, mirt.a, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
 as.data.frame(coef(model_2pl, IRTparms = T, simplify = TRUE)) %>%
@@ -240,11 +240,11 @@ Criteria for evaluating overall model fit:
 M2_model_2pl <- M2(model_2pl, impute = 100, residmat = FALSE)
 
 M2_model_2pl %>%
-kable(digits = 2, format="html", caption="Global Fit Statistics", escape = F) %>%
+kable(digits = 3, format="html", caption="Global Fit Statistics", escape = F) %>%
     kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
 ```
 
-**Item Fit**: The `itemfit()` in a piece-wise assessment of item fit using [Orlando and Thissen's (2000) S_X2 statistic](https://www.researchgate.net/profile/Maria_Edelen/publication/236884113_Likelihood-Based_Item-Fit_Indices_for_Dichotomous_Item_Response_Theory_Models/links/5408807e0cf23d9765b37482.pdf). An alpha of <= .01 is typically used to indicate misfitting items. Results hint at some issues with potentially misfitting items (i.e., 10, 13, and 3), but none of them reach the critical alpha value. Followup analyses could be conducted using [`itemGAM()`](https://www.rdocumentation.org/packages/mirt/versions/1.25/topics/itemGAM)to estimate the response curves for these items to hypothesize as to why these items are on the fringe of misfitting. 
+**Item Fit**: The `itemfit()` in a piece-wise assessment of item fit using [Orlando and Thissen's (2000) S_X2 statistic](https://www.researchgate.net/profile/Maria_Edelen/publication/236884113_Likelihood-Based_Item-Fit_Indices_for_Dichotomous_Item_Response_Theory_Models/links/5408807e0cf23d9765b37482.pdf). An alpha of <= .01 is typically used to indicate misfitting items. Results hint at some issues with potentially misfitting items (i.e., 12, 10, 5, and 8), but none of them reach the critical alpha value. Followup analyses could be conducted using [`itemGAM()`](https://www.rdocumentation.org/packages/mirt/versions/1.25/topics/itemGAM)to estimate the response curves for these items to hypothesize as to why these items are on the fringe of misfitting. 
 
 ```{r, message=FALSE, warning=FALSE, tidy=TRUE}
 # Piecewise misfit ---
@@ -279,21 +279,22 @@ itemfit_2pl %>%
 
 ## Assumptions
 
-**Local dependence**: [Yen’s index of local dependence Q3](https://conservancy.umn.edu/bitstream/handle/11299/107543/v08n2p125.pdf?sequence=1&isAllowed=y) is provided. Q3 is a pairwise index of correlation of the residuals from the IRT model. If some sets of items present a significant level of residual correlation, then those items can be considered as locally dependent (Yen, 1993). Q3 statistics >= .2 are automatic. The Q3 statistic index indicated some local dependence between item 13 and item 1 and item 10. Recall from the analysis of item fit that items 10 and 13 were potentially problematic. In terms of the IRT estimates this could present some issues. Some results studies have shown that if negative local dependence is not modeled, the discrimination parameters of the interdependent items are underestimated. Research also shows that the discrimination parameter (aj) depends on the difficulty of the item it interacts with (i.e., is locally dependent with), but not on the difficulty of the item itself. There are several ways to deal with this dependency: 1) model it as a testlet, incorporate it as a parameter into the model, all of which are quite time consuming and warrant their own set of analyses. A further complication with this measure is that only 2 items exhibit local dependence. To model this in `mirt` would require the analyst to specify a separate factor for the locally dependent items, in this case because there are only two locally dependent items, the slopes for these would need to be constrained equal. A separate theta score for the conditionally dependent items would be generated, and because there are only two items you'd likely observe this score to behave erratically. If elimination of the items is not possible, then you just need to accept that the discrimination parameters for these two items are underestimated, and not take too much stock in the difficulty estimates (i.e., if you observe these two items represent either the floor or the ceiling of the measure I'd worry about including them in the analysis). 
+**Local dependence**: [Yen’s index of local dependence Q3](https://conservancy.umn.edu/bitstream/handle/11299/107543/v08n2p125.pdf?sequence=1&isAllowed=y) is provided. Q3 is a pairwise index of correlation of the residuals from the IRT model. If some sets of items present a significant level of residual correlation, then those items can be considered as locally dependent (Yen, 1993). Q3 statistics >= .2 are automatic. The Q3 statistic index indicated some local dependence between item 13 and item 1 and item 10. Recall from the analysis of item fit that items 10 and 13 were potentially problematic. Several items exhibited issues with local dependence: 7, 9, 10, and 13. 
 
 Example of the constrained model statement: 
-
+```{r, message=FALSE, warning=FALSE, tidy=TRUE}
   mod.statement <- '
   THETA = s_preSEP_01, s_preSEP_02, s_preSEP_03, s_preSEP_04, s_preSEP_05, s_preSEP_06, s_preSEP_07,
   s_preSEP_08,   s_preSEP_09, s_preSEP_10, s_preSEP_11, s_preSEP_12, s_preSEP_13, s_preSEP_14
   
   # two items exhibiting local dependence (should these two items not be included in the THETA call above?)
-  RESID.THETA = s_preSEP_10, s_preSEP_13         
+  RESID.THETA = s_preSEP_7, s_preSEP_09,  s_preSEP_10, s_preSEP_13         
   
   # constrain the two slopes to identify the construct for the factor with local dependence
-  CONSTRAIN = (s_preSEP_10, s_preSEP_13, a2)   
-  COV = THETA*THETA
+  CONSTRAIN = (s_preSEP_7, s_preSEP_09,  s_preSEP_10, s_preSEP_13 , a2)   
+  COV = THETA*THETA #note THETA 1 and THETA 2 are orthogonal
   '
+```
 
 ```{r, message=FALSE, warning=FALSE, tidy=TRUE}
 tidy(residuals(model_2pl, type = 'Q3', method = 'ML', suppress = .19))
@@ -304,19 +305,20 @@ tidy(residuals(model_2pl, type = 'Q3', method = 'ML', suppress = .19))
 ```{r, message=FALSE, warning=FALSE, tidy=TRUE}
 model.1 <- '
   # measurement model
-    factor =~ s_preSEP_01 + s_preSEP_02 + s_preSEP_03 + 
-                s_preSEP_04 + s_preSEP_05 + s_preSEP_06 + 
-                s_preSEP_07 + s_preSEP_08 + s_preSEP_09 + 
-                s_preSEP_10 + s_preSEP_11 + s_preSEP_12 +
-                s_preSEP_13 + s_preSEP_14
+    factor =~ s_postSEP_01 + s_postSEP_02 + s_postSEP_03 + 
+                s_postSEP_04 + s_postSEP_05 + s_postSEP_06 + 
+                s_postSEP_07 + s_postSEP_08 + s_postSEP_09 + 
+                s_postSEP_10 + s_postSEP_11 + s_postSEP_12 +
+                s_postSEP_13 + s_postSEP_14
 '
 fit.1 <- cfa(model.1, data=items.noNA, std.lv = TRUE,
-             ordered = c("s_preSEP_01", "s_preSEP_02", "s_preSEP_03", 
-                "s_preSEP_04", "s_preSEP_05", "s_preSEP_06", 
-                "s_preSEP_07", "s_preSEP_08", "s_preSEP_09", 
-                "s_preSEP_10", "s_preSEP_11", "s_preSEP_12", 
-                "s_preSEP_13", "s_preSEP_14"))
+             ordered = c("s_postSEP_01", "s_postSEP_02", "s_postSEP_03", 
+                "s_postSEP_04", "s_postSEP_05", "s_postSEP_06", 
+                "s_postSEP_07", "s_postSEP_08", "s_postSEP_09", 
+                "s_postSEP_10", "s_postSEP_11", "s_postSEP_12", 
+                "s_postSEP_13", "s_postSEP_14"))
 fitMeasures(fit.1)
+summary(fit.1, fit.measures=TRUE)
 ```
 
 Results testing a 1-factor solution for the measure, with item 12 removed, also look good.
@@ -324,18 +326,18 @@ Results testing a 1-factor solution for the measure, with item 12 removed, also 
 # dropping item 12
 model.2 <- '
   # measurement model
-    factor =~ s_preSEP_01 + s_preSEP_02 + s_preSEP_03 + 
-                s_preSEP_04 + s_preSEP_05 + s_preSEP_06 + 
-                s_preSEP_07 + s_preSEP_08 + s_preSEP_09 + 
-                s_preSEP_10 + s_preSEP_11 + 
-                s_preSEP_13 + s_preSEP_14
+    factor =~ s_postSEP_01 + s_postSEP_02 + s_postSEP_03 + 
+                s_postSEP_04 + s_postSEP_05 + s_postSEP_06 + 
+                s_postSEP_07 + s_postSEP_08 + s_postSEP_09 + 
+                s_postSEP_10 + s_postSEP_11 + 
+                s_postSEP_13 + s_postSEP_14
 '
 fit.2 <- cfa(model.2, data=items.noNA, std.lv = TRUE,
-              ordered = c("s_preSEP_01", "s_preSEP_02", "s_preSEP_03", 
-                "s_preSEP_04", "s_preSEP_05", "s_preSEP_06", 
-                "s_preSEP_07", "s_preSEP_08", "s_preSEP_09", 
-                "s_preSEP_10", "s_preSEP_11", "s_preSEP_12", 
-                "s_preSEP_13", "s_preSEP_14"))
+              ordered = c("s_postSEP_01", "s_postSEP_02", "s_postSEP_03", 
+                "s_postSEP_04", "s_postSEP_05", "s_postSEP_06", 
+                "s_postSEP_07", "s_postSEP_08", "s_postSEP_09", 
+                "s_postSEP_10", "s_postSEP_11", "s_postSEP_12", 
+                "s_postSEP_13", "s_postSEP_14"))
 fitMeasures(fit.2)
 ```
 
@@ -344,8 +346,8 @@ fitMeasures(fit.2)
 # 2-PL model
 set.seed(8675309)
 #colnames(items)
-items.noNA_no12 <- dplyr::select(items.noNA, StudentID, s_preSEP_01, s_preSEP_02, s_preSEP_03, s_preSEP_04, s_preSEP_05, s_preSEP_06,
-                     s_preSEP_07, s_preSEP_08, s_preSEP_09, s_preSEP_10, s_preSEP_11, s_preSEP_13, s_preSEP_14)
+items.noNA_no12 <- dplyr::select(items.noNA, StudentID, s_postSEP_01, s_postSEP_02, s_postSEP_03, s_postSEP_04, s_postSEP_05, s_postSEP_06,
+                     s_postSEP_07, s_postSEP_08, s_postSEP_09, s_postSEP_10, s_postSEP_11, s_postSEP_13, s_postSEP_14)
 model_2pl_b <- mirt(items.noNA_no12[-1], 1, 
                         itemtype = '2PL', 
                         technical = list(removeEmptyRows=TRUE, parallel=TRUE, NCYCLES = 8000), 
@@ -384,7 +386,7 @@ plot(model_2pl_b, type = 'trace', which.items = 1:13, facet_items=FALSE)
 
 ## Test Information
 
-Examine information, SEM, and reliability for the whole measure. The plots below show that information maximizes around an average ability level (i.e., in the range of -2 to + 2), standard errors are lower in this range, and reliability is maximized. It is notable that reliability within this region fail to meet the conventional criteria of <=.70. 
+Examine information, SEM, and reliability for the whole measure. The plots below show that information maximizes around an average ability level (i.e., in the range of -2 to + 2), standard errors are lower in this range, and reliability is maximized. 
 
 ```{r, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
 # examine test information
@@ -427,21 +429,21 @@ The plots below indicate the association between the standardized raw scores for
 ```{r, message=FALSE, warning=FALSE, tidy=TRUE, results='asis'}
 # Factor scores vs Standardized total scores 
 #fs.map <- as.vector(
-Theta_PreSep <-  fscores(model_2pl_b, method = "MAP", full.scores = TRUE)
-STS_PreSep <- as.vector(scale(apply((items.noNA_no12)[-1], 1, sum))) 
-TOTAL_PreSep<- apply((items.noNA_no12)[-1], 1, sum)
+Theta_postSep <-  fscores(model_2pl_b, method = "MAP", full.scores = TRUE)
+STS_postSep <- as.vector(scale(apply((items.noNA_no12)[-1], 1, sum))) 
+TOTAL_postSep<- apply((items.noNA_no12)[-1], 1, sum)
 
 # save the factor scores
-pre.sep.theta <- cbind(
-  items.noNA_no12[1], Theta_PreSep, TOTAL_PreSep, STS_PreSep
+post.sep.theta <- cbind(
+  items.noNA_no12[1], Theta_postSep, TOTAL_postSep, STS_postSep
 ) %>%
-  rename(Theta_PreSep = F1)
+  rename(Theta_postSep = F1)
 
 # write the data
-write_csv(pre.sep.theta, "../data/pre.sep.theta.csv")
+write_csv(post.sep.theta, "../data/post.sep.theta.csv")
 
 # IRT MAP scores vs. standardized scores
-p1.map <- ggplot(pre.sep.theta, aes(x=TOTAL_PreSep, y=Theta_PreSep)) + 
+p1.map <- ggplot(post.sep.theta, aes(x=TOTAL_postSep, y=Theta_postSep)) + 
   geom_point()+
   geom_smooth() + 
   theme_minimal() + 
@@ -451,5 +453,7 @@ p1.map <- ggplot(pre.sep.theta, aes(x=TOTAL_PreSep, y=Theta_PreSep)) +
 p1.map
 
 # histogram of theta
-ggplot(pre.sep.theta, aes(pre.sep.theta$Theta_PreSep)) + geom_histogram(bins=25)
+ggplot(post.sep.theta, aes(post.sep.theta$Theta_postSep)) + geom_histogram(bins=25)
+
+# potential outlier: 1256121
 ```
